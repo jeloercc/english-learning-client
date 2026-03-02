@@ -1,0 +1,501 @@
+export type CEFRLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+
+export interface Phrase {
+  phrase: string;
+  translation: string;
+  context: string;
+  example?: string;
+}
+
+export interface PhraseTopic {
+  topic: string;
+  icon: string;
+  phrases: Phrase[];
+}
+
+export const PHRASES: Record<CEFRLevel, PhraseTopic[]> = {
+  // ─── A1 · Beginner ──────────────────────────────────────────────────────────
+  A1: [
+    {
+      topic: "Greetings",
+      icon: "👋",
+      phrases: [
+        { phrase: "Hello!", translation: "¡Hola!", context: "General greeting" },
+        { phrase: "Good morning!", translation: "¡Buenos días!", context: "Morning greeting" },
+        { phrase: "Good afternoon!", translation: "¡Buenas tardes!", context: "Afternoon greeting" },
+        { phrase: "Good night!", translation: "¡Buenas noches!", context: "Evening farewell" },
+        { phrase: "How are you?", translation: "¿Cómo estás?", context: "Asking about wellbeing" },
+        { phrase: "I'm fine, thanks.", translation: "Estoy bien, gracias.", context: "Responding to 'How are you?'" },
+        { phrase: "Nice to meet you!", translation: "¡Encantado/a de conocerte!", context: "First meeting" },
+        { phrase: "Goodbye! / Bye!", translation: "¡Adiós!", context: "Farewell" },
+        { phrase: "See you later!", translation: "¡Hasta luego!", context: "Informal farewell" },
+        { phrase: "See you tomorrow!", translation: "¡Hasta mañana!", context: "Farewell until next day" },
+      ],
+    },
+    {
+      topic: "Introductions",
+      icon: "🙋",
+      phrases: [
+        { phrase: "My name is…", translation: "Me llamo…", context: "Stating your name" },
+        { phrase: "I am from…", translation: "Soy de…", context: "Stating your country/city" },
+        { phrase: "I am… years old.", translation: "Tengo… años.", context: "Stating your age" },
+        { phrase: "I speak a little English.", translation: "Hablo un poco de inglés.", context: "Language ability" },
+        { phrase: "Do you speak Spanish?", translation: "¿Hablas español?", context: "Asking about languages" },
+        { phrase: "Where are you from?", translation: "¿De dónde eres?", context: "Asking someone's origin" },
+        { phrase: "I live in…", translation: "Vivo en…", context: "Stating where you live" },
+        { phrase: "I am a student / teacher.", translation: "Soy estudiante / profesor/a.", context: "Stating your occupation" },
+      ],
+    },
+    {
+      topic: "Politeness",
+      icon: "🙏",
+      phrases: [
+        { phrase: "Please.", translation: "Por favor.", context: "Polite request" },
+        { phrase: "Thank you very much.", translation: "Muchas gracias.", context: "Gratitude" },
+        { phrase: "You're welcome.", translation: "De nada.", context: "Response to thanks" },
+        { phrase: "Excuse me.", translation: "Perdón / Con permiso.", context: "Getting attention or passing" },
+        { phrase: "I'm sorry.", translation: "Lo siento.", context: "Apologizing" },
+        { phrase: "I don't understand.", translation: "No entiendo.", context: "Comprehension issue" },
+        { phrase: "Can you repeat that, please?", translation: "¿Puedes repetir eso, por favor?", context: "Asking for repetition" },
+        { phrase: "Can you speak more slowly?", translation: "¿Puedes hablar más despacio?", context: "Asking someone to slow down" },
+      ],
+    },
+    {
+      topic: "Numbers & Time",
+      icon: "🕐",
+      phrases: [
+        { phrase: "What time is it?", translation: "¿Qué hora es?", context: "Asking the time" },
+        { phrase: "It is three o'clock.", translation: "Son las tres.", context: "Telling the time" },
+        { phrase: "Today is Monday.", translation: "Hoy es lunes.", context: "Day of the week" },
+        { phrase: "How much does it cost?", translation: "¿Cuánto cuesta?", context: "Shopping" },
+        { phrase: "It's half past two.", translation: "Son las dos y media.", context: "Telling half past the hour" },
+        { phrase: "In the morning / afternoon / evening.", translation: "Por la mañana / tarde / noche.", context: "Parts of the day" },
+      ],
+    },
+    {
+      topic: "Classroom Language",
+      icon: "📚",
+      phrases: [
+        { phrase: "What does … mean?", translation: "¿Qué significa…?", context: "Asking for a definition" },
+        { phrase: "How do you spell…?", translation: "¿Cómo se escribe…?", context: "Asking for spelling" },
+        { phrase: "Can I go to the bathroom?", translation: "¿Puedo ir al baño?", context: "Making a request" },
+        { phrase: "I have a question.", translation: "Tengo una pregunta.", context: "In class" },
+        { phrase: "Can you help me?", translation: "¿Puedes ayudarme?", context: "Asking for help" },
+        { phrase: "I don't know.", translation: "No sé.", context: "Admitting uncertainty" },
+      ],
+    },
+    {
+      topic: "Basic Needs",
+      icon: "🏠",
+      phrases: [
+        { phrase: "I'm hungry.", translation: "Tengo hambre.", context: "Expressing hunger" },
+        { phrase: "I'm thirsty.", translation: "Tengo sed.", context: "Expressing thirst" },
+        { phrase: "I'm tired.", translation: "Estoy cansado/a.", context: "Expressing fatigue" },
+        { phrase: "I need help.", translation: "Necesito ayuda.", context: "Requesting assistance" },
+        { phrase: "Where is the toilet?", translation: "¿Dónde está el baño?", context: "Finding facilities" },
+        { phrase: "I feel sick.", translation: "Me siento mal.", context: "Expressing illness" },
+        { phrase: "Call an ambulance!", translation: "¡Llama a una ambulancia!", context: "Emergency" },
+      ],
+    },
+  ],
+
+  // ─── A2 · Elementary ────────────────────────────────────────────────────────
+  A2: [
+    {
+      topic: "Shopping",
+      icon: "🛍️",
+      phrases: [
+        { phrase: "I'd like to buy…", translation: "Quisiera comprar…", context: "Making a purchase" },
+        { phrase: "Do you have this in a different size?", translation: "¿Lo tiene en otra talla?", context: "Shopping for clothes" },
+        { phrase: "How much is this?", translation: "¿Cuánto cuesta esto?", context: "Asking the price" },
+        { phrase: "That's too expensive.", translation: "Es demasiado caro.", context: "Reacting to a high price" },
+        { phrase: "Can I pay by card?", translation: "¿Puedo pagar con tarjeta?", context: "Payment method" },
+        { phrase: "I'll take it.", translation: "Me lo llevo.", context: "Buying decision" },
+        { phrase: "Do you have anything cheaper?", translation: "¿Tiene algo más barato?", context: "Looking for a bargain" },
+        { phrase: "Can I try it on?", translation: "¿Me lo puedo probar?", context: "Fitting room request" },
+      ],
+    },
+    {
+      topic: "Directions",
+      icon: "🗺️",
+      phrases: [
+        { phrase: "Where is the…?", translation: "¿Dónde está el/la…?", context: "Asking for location" },
+        { phrase: "Turn left / right.", translation: "Gira a la izquierda / derecha.", context: "Giving directions" },
+        { phrase: "Go straight ahead.", translation: "Sigue recto.", context: "Going forward" },
+        { phrase: "It's next to / opposite…", translation: "Está al lado de / frente a…", context: "Describing location" },
+        { phrase: "How far is it?", translation: "¿A qué distancia está?", context: "Asking distance" },
+        { phrase: "Take the second left.", translation: "Toma la segunda calle a la izquierda.", context: "Specific directions" },
+        { phrase: "It's about ten minutes on foot.", translation: "Está a unos diez minutos a pie.", context: "Distance and time" },
+      ],
+    },
+    {
+      topic: "Ordering Food",
+      icon: "🍽️",
+      phrases: [
+        { phrase: "A table for two, please.", translation: "Una mesa para dos, por favor.", context: "Restaurant arrival" },
+        { phrase: "Can I see the menu?", translation: "¿Me puede traer la carta?", context: "Requesting the menu" },
+        { phrase: "I'd like the chicken, please.", translation: "Quisiera el pollo, por favor.", context: "Ordering food" },
+        { phrase: "I'm allergic to nuts.", translation: "Soy alérgico/a a los frutos secos.", context: "Dietary restrictions" },
+        { phrase: "The bill, please.", translation: "La cuenta, por favor.", context: "Asking for the check" },
+        { phrase: "It was delicious!", translation: "¡Estaba delicioso!", context: "Complimenting food" },
+        { phrase: "I'd like a glass of water.", translation: "Quisiera un vaso de agua.", context: "Ordering drinks" },
+        { phrase: "Is service included?", translation: "¿Está incluido el servicio?", context: "Asking about tip" },
+      ],
+    },
+    {
+      topic: "Transport",
+      icon: "🚌",
+      phrases: [
+        { phrase: "Which bus goes to the centre?", translation: "¿Qué autobús va al centro?", context: "Using public transport" },
+        { phrase: "A single / return ticket to…, please.", translation: "Un billete de ida / ida y vuelta a…, por favor.", context: "Buying a ticket" },
+        { phrase: "When does the next train leave?", translation: "¿Cuándo sale el próximo tren?", context: "Train departure" },
+        { phrase: "Where do I get off?", translation: "¿Dónde tengo que bajar?", context: "Bus or train travel" },
+        { phrase: "Is this seat taken?", translation: "¿Está ocupado este asiento?", context: "Asking about a seat" },
+        { phrase: "How long does the journey take?", translation: "¿Cuánto dura el viaje?", context: "Journey duration" },
+      ],
+    },
+    {
+      topic: "Describing People & Places",
+      icon: "🏙️",
+      phrases: [
+        { phrase: "She has long brown hair.", translation: "Ella tiene el pelo largo y castaño.", context: "Physical description" },
+        { phrase: "He is tall and slim.", translation: "Él es alto y delgado.", context: "Physical description" },
+        { phrase: "The city is very busy.", translation: "La ciudad es muy animada.", context: "Describing a place" },
+        { phrase: "It's a beautiful, quiet town.", translation: "Es un pueblo bonito y tranquilo.", context: "Describing a town" },
+        { phrase: "She is wearing a red jacket.", translation: "Ella lleva una chaqueta roja.", context: "Describing clothing" },
+        { phrase: "My flat is small but comfortable.", translation: "Mi piso es pequeño pero cómodo.", context: "Describing your home" },
+      ],
+    },
+    {
+      topic: "Weather",
+      icon: "🌤️",
+      phrases: [
+        { phrase: "What's the weather like today?", translation: "¿Qué tiempo hace hoy?", context: "Asking about weather" },
+        { phrase: "It's sunny / cloudy / windy.", translation: "Hace sol / está nublado / hace viento.", context: "Describing weather" },
+        { phrase: "It's raining / snowing.", translation: "Está lloviendo / nevando.", context: "Current weather" },
+        { phrase: "What will the weather be like tomorrow?", translation: "¿Qué tiempo hará mañana?", context: "Future weather" },
+        { phrase: "It's freezing!", translation: "¡Hace un frío helador!", context: "Very cold weather" },
+        { phrase: "Take an umbrella — it might rain.", translation: "Lleva un paraguas — puede que llueva.", context: "Weather advice" },
+      ],
+    },
+  ],
+
+  // ─── B1 · Intermediate ──────────────────────────────────────────────────────
+  B1: [
+    {
+      topic: "Expressing Opinions",
+      icon: "💬",
+      phrases: [
+        { phrase: "In my opinion,…", translation: "En mi opinión,…", context: "Stating a view" },
+        { phrase: "I think / I believe…", translation: "Creo que…", context: "Expressing a view" },
+        { phrase: "As far as I'm concerned,…", translation: "En lo que a mí respecta,…", context: "Personal stance" },
+        { phrase: "I agree with you.", translation: "Estoy de acuerdo contigo.", context: "Agreement" },
+        { phrase: "I see your point, but…", translation: "Entiendo tu punto, pero…", context: "Polite disagreement" },
+        { phrase: "That's a good point.", translation: "Es un buen punto.", context: "Acknowledging an argument" },
+        { phrase: "I'm not sure about that.", translation: "No estoy seguro/a de eso.", context: "Expressing doubt" },
+        { phrase: "To be honest,…", translation: "Para ser honesto/a,…", context: "Being candid" },
+      ],
+    },
+    {
+      topic: "Making Plans",
+      icon: "📅",
+      phrases: [
+        { phrase: "Would you like to…?", translation: "¿Te gustaría…?", context: "Making an invitation" },
+        { phrase: "How about meeting on Friday?", translation: "¿Qué tal si quedamos el viernes?", context: "Suggesting a time" },
+        { phrase: "I'm afraid I can't make it.", translation: "Me temo que no puedo.", context: "Declining politely" },
+        { phrase: "Let's meet at 7 o'clock.", translation: "Quedamos a las 7.", context: "Confirming a plan" },
+        { phrase: "What are you doing this weekend?", translation: "¿Qué haces este fin de semana?", context: "Asking about plans" },
+        { phrase: "That sounds great!", translation: "¡Suena genial!", context: "Accepting with enthusiasm" },
+        { phrase: "Shall we say the café on Main Street?", translation: "¿Quedamos en la cafetería de la calle principal?", context: "Suggesting a place" },
+        { phrase: "I'll let you know.", translation: "Te aviso.", context: "Promising to confirm" },
+      ],
+    },
+    {
+      topic: "Health & Doctors",
+      icon: "🏥",
+      phrases: [
+        { phrase: "I have a headache / a cold.", translation: "Tengo dolor de cabeza / un resfriado.", context: "Describing symptoms" },
+        { phrase: "I'd like to make an appointment.", translation: "Quisiera pedir una cita.", context: "Booking at a clinic" },
+        { phrase: "It hurts here.", translation: "Me duele aquí.", context: "Locating pain" },
+        { phrase: "I've been feeling unwell for two days.", translation: "Me siento mal desde hace dos días.", context: "Duration of illness" },
+        { phrase: "The doctor prescribed some medication.", translation: "El médico me recetó medicación.", context: "After a consultation" },
+        { phrase: "Take this twice a day with food.", translation: "Tome esto dos veces al día con comida.", context: "Medical instructions" },
+      ],
+    },
+    {
+      topic: "Travel",
+      icon: "✈️",
+      phrases: [
+        { phrase: "I'd like to book a ticket to…", translation: "Quisiera reservar un billete a…", context: "Booking transport" },
+        { phrase: "Is there a direct flight?", translation: "¿Hay un vuelo directo?", context: "Asking about routes" },
+        { phrase: "My luggage is missing.", translation: "Mi equipaje se ha perdido.", context: "Airport problem" },
+        { phrase: "Could you recommend a hotel?", translation: "¿Podría recomendarme un hotel?", context: "Asking for advice" },
+        { phrase: "Where can I exchange currency?", translation: "¿Dónde puedo cambiar moneda?", context: "Money exchange" },
+        { phrase: "Check-in is at midday.", translation: "El check-in es al mediodía.", context: "Hotel information" },
+        { phrase: "Could I have a wake-up call at 7 AM?", translation: "¿Me podría dar un servicio de despertador a las 7?", context: "Hotel request" },
+      ],
+    },
+    {
+      topic: "Problem Solving",
+      icon: "🔧",
+      phrases: [
+        { phrase: "There seems to be a problem with…", translation: "Parece que hay un problema con…", context: "Reporting an issue" },
+        { phrase: "Could you help me with…?", translation: "¿Podrías ayudarme con…?", context: "Asking for help" },
+        { phrase: "I'm not sure how to…", translation: "No estoy seguro/a de cómo…", context: "Expressing uncertainty" },
+        { phrase: "What do you suggest?", translation: "¿Qué sugieres?", context: "Asking for a recommendation" },
+        { phrase: "I'll look into it.", translation: "Lo investigaré.", context: "Committing to action" },
+        { phrase: "Let's find a solution together.", translation: "Busquemos una solución juntos.", context: "Collaborative approach" },
+      ],
+    },
+    {
+      topic: "Work & Study",
+      icon: "💻",
+      phrases: [
+        { phrase: "Can you send me the report by Friday?", translation: "¿Me puedes enviar el informe el viernes?", context: "Work request" },
+        { phrase: "I'll get back to you on that.", translation: "Te lo confirmo.", context: "Deferring an answer" },
+        { phrase: "Let's schedule a meeting.", translation: "Pongamos una reunión.", context: "Work planning" },
+        { phrase: "I'm working on a project.", translation: "Estoy trabajando en un proyecto.", context: "Describing current work" },
+        { phrase: "Could you explain that again?", translation: "¿Podrías explicarlo de nuevo?", context: "Asking for clarification" },
+        { phrase: "I missed the deadline.", translation: "No cumplí el plazo.", context: "Work problem" },
+      ],
+    },
+  ],
+
+  // ─── B2 · Upper-Intermediate ────────────────────────────────────────────────
+  B2: [
+    {
+      topic: "Discussions & Debates",
+      icon: "🗣️",
+      phrases: [
+        { phrase: "It could be argued that…", translation: "Se podría argumentar que…", context: "Presenting an argument" },
+        { phrase: "On the one hand… on the other hand…", translation: "Por un lado… por otro lado…", context: "Balanced argument" },
+        { phrase: "There is strong evidence to suggest…", translation: "Hay evidencia sólida que sugiere…", context: "Citing evidence" },
+        { phrase: "The main drawback is…", translation: "El principal inconveniente es…", context: "Identifying a weakness" },
+        { phrase: "This raises the question of…", translation: "Esto plantea la cuestión de…", context: "Introducing a topic" },
+        { phrase: "To put it differently,…", translation: "Dicho de otra manera,…", context: "Paraphrasing" },
+        { phrase: "That's a fair point, although…", translation: "Es un punto válido, aunque…", context: "Concession + counter" },
+        { phrase: "The evidence points in the opposite direction.", translation: "La evidencia apunta en dirección contraria.", context: "Refuting a claim" },
+      ],
+    },
+    {
+      topic: "Professional Communication",
+      icon: "💼",
+      phrases: [
+        { phrase: "I'm writing with regard to…", translation: "Le escribo en relación con…", context: "Formal email opening" },
+        { phrase: "Please find attached…", translation: "Adjunto encontrará…", context: "Email with attachment" },
+        { phrase: "I would be grateful if you could…", translation: "Le agradecería que pudiera…", context: "Formal request" },
+        { phrase: "I look forward to hearing from you.", translation: "Quedo a la espera de su respuesta.", context: "Email closing" },
+        { phrase: "Could we schedule a meeting to discuss…?", translation: "¿Podríamos concertar una reunión para tratar…?", context: "Meeting request" },
+        { phrase: "Following up on our conversation…", translation: "Como seguimiento de nuestra conversación…", context: "Follow-up email" },
+        { phrase: "Please do not hesitate to contact me.", translation: "No dude en contactarme.", context: "Offering availability" },
+      ],
+    },
+    {
+      topic: "Hypothetical & Speculation",
+      icon: "🤔",
+      phrases: [
+        { phrase: "Suppose / Imagine that…", translation: "Supón / Imagina que…", context: "Introducing hypothesis" },
+        { phrase: "What if we were to…?", translation: "¿Y si nosotros fuésemos a…?", context: "Exploring a possibility" },
+        { phrase: "It might well be the case that…", translation: "Bien podría ser que…", context: "Tentative assertion" },
+        { phrase: "All things being equal,…", translation: "En igualdad de condiciones,…", context: "Conditional reasoning" },
+        { phrase: "That's not necessarily true.", translation: "Eso no es necesariamente cierto.", context: "Soft refutation" },
+        { phrase: "In theory, that should work.", translation: "En teoría, eso debería funcionar.", context: "Tentative support" },
+      ],
+    },
+    {
+      topic: "Media & Current Events",
+      icon: "📰",
+      phrases: [
+        { phrase: "According to recent reports,…", translation: "Según informes recientes,…", context: "Citing news" },
+        { phrase: "The latest figures show that…", translation: "Las últimas cifras muestran que…", context: "Reporting data" },
+        { phrase: "The government has announced…", translation: "El gobierno ha anunciado…", context: "News reporting" },
+        { phrase: "Experts are divided on this issue.", translation: "Los expertos están divididos sobre este tema.", context: "Reporting disagreement" },
+        { phrase: "Critics argue that…", translation: "Los críticos argumentan que…", context: "Reporting criticism" },
+        { phrase: "The story has attracted widespread attention.", translation: "La historia ha atraído mucha atención.", context: "Describing media coverage" },
+      ],
+    },
+    {
+      topic: "Expressing Feelings & Attitudes",
+      icon: "💭",
+      phrases: [
+        { phrase: "I find it rather frustrating that…", translation: "Me resulta bastante frustrante que…", context: "Expressing frustration" },
+        { phrase: "I'm genuinely concerned about…", translation: "Estoy realmente preocupado/a por…", context: "Expressing worry" },
+        { phrase: "To be frank,…", translation: "Francamente,…", context: "Being direct" },
+        { phrase: "I was pleasantly surprised by…", translation: "Me sorprendió gratamente…", context: "Positive surprise" },
+        { phrase: "Frankly speaking, I have doubts.", translation: "Hablando con franqueza, tengo dudas.", context: "Expressing scepticism" },
+        { phrase: "I can't help feeling that…", translation: "No puedo evitar sentir que…", context: "Inevitable feeling" },
+      ],
+    },
+    {
+      topic: "Academic Writing",
+      icon: "📝",
+      phrases: [
+        { phrase: "This essay aims to explore…", translation: "Este ensayo pretende explorar…", context: "Essay introduction" },
+        { phrase: "Research suggests that…", translation: "La investigación sugiere que…", context: "Citing research" },
+        { phrase: "In conclusion, it can be argued that…", translation: "En conclusión, se puede argumentar que…", context: "Essay conclusion" },
+        { phrase: "As a result of these findings,…", translation: "Como resultado de estos hallazgos,…", context: "Discussing results" },
+        { phrase: "This is supported by the fact that…", translation: "Esto se ve respaldado por el hecho de que…", context: "Supporting evidence" },
+        { phrase: "It is worth noting that…", translation: "Vale la pena señalar que…", context: "Drawing attention to a point" },
+      ],
+    },
+  ],
+
+  // ─── C1 · Advanced ──────────────────────────────────────────────────────────
+  C1: [
+    {
+      topic: "Academic & Formal Writing",
+      icon: "📝",
+      phrases: [
+        { phrase: "This paper seeks to examine…", translation: "Este trabajo pretende examinar…", context: "Academic introduction" },
+        { phrase: "The findings lend credence to…", translation: "Los hallazgos respaldan…", context: "Discussing results" },
+        { phrase: "It would be remiss to overlook…", translation: "Sería un descuido pasar por alto…", context: "Pointing to an omission" },
+        { phrase: "The implications of this are far-reaching.", translation: "Las implicaciones de esto son de gran alcance.", context: "Discussing significance" },
+        { phrase: "Contrary to what has been claimed,…", translation: "Contrariamente a lo que se ha afirmado,…", context: "Refuting a claim" },
+        { phrase: "This merits further investigation.", translation: "Esto merece una investigación más profunda.", context: "Suggesting future research" },
+        { phrase: "A notable exception to this pattern is…", translation: "Una excepción notable a este patrón es…", context: "Acknowledging anomalies" },
+        { phrase: "The data is consistent with the hypothesis that…", translation: "Los datos son coherentes con la hipótesis de que…", context: "Supporting a theory" },
+      ],
+    },
+    {
+      topic: "Persuasion & Rhetoric",
+      icon: "🎤",
+      phrases: [
+        { phrase: "There is no denying that…", translation: "No se puede negar que…", context: "Strong concession" },
+        { phrase: "The weight of evidence points to…", translation: "El peso de la evidencia apunta a…", context: "Building an argument" },
+        { phrase: "One cannot but conclude that…", translation: "No se puede sino concluir que…", context: "Formal conclusion" },
+        { phrase: "It stands to reason that…", translation: "Es razonable concluir que…", context: "Logical argument" },
+        { phrase: "Suffice it to say that…", translation: "Baste decir que…", context: "Summarizing briefly" },
+        { phrase: "The case for this is compelling.", translation: "El argumento a favor de esto es convincente.", context: "Endorsing a position" },
+        { phrase: "Any reasonable analysis would suggest…", translation: "Cualquier análisis razonable sugeriría…", context: "Persuasive claim" },
+      ],
+    },
+    {
+      topic: "Nuanced Agreement & Disagreement",
+      icon: "⚖️",
+      phrases: [
+        { phrase: "I take your point; however,…", translation: "Entiendo tu argumento; sin embargo,…", context: "Respectful counter" },
+        { phrase: "That's a valid concern, albeit…", translation: "Es una preocupación válida, aunque…", context: "Partial agreement" },
+        { phrase: "I beg to differ on that point.", translation: "Discrepo en ese punto.", context: "Formal disagreement" },
+        { phrase: "I would venture to suggest that…", translation: "Me atrevería a sugerir que…", context: "Tentative proposal" },
+        { phrase: "There is much to be said for…", translation: "Hay mucho que decir a favor de…", context: "Acknowledging merits" },
+        { phrase: "While I appreciate the sentiment,…", translation: "Aunque valoro el sentimiento,…", context: "Polite qualification" },
+      ],
+    },
+    {
+      topic: "Cultural & Idiomatic Language",
+      icon: "🌍",
+      phrases: [
+        { phrase: "She hit the nail on the head.", translation: "Dio en el clavo.", context: "Idiom: being exactly right" },
+        { phrase: "We're in the same boat.", translation: "Estamos en el mismo barco.", context: "Idiom: same situation" },
+        { phrase: "Let's not beat around the bush.", translation: "No andemos con rodeos.", context: "Idiom: be direct" },
+        { phrase: "It's a double-edged sword.", translation: "Es un arma de doble filo.", context: "Idiom: two sides" },
+        { phrase: "The ball is in your court.", translation: "La pelota está en tu tejado.", context: "Idiom: your decision" },
+        { phrase: "It's the tip of the iceberg.", translation: "Es la punta del iceberg.", context: "Idiom: small visible part of a larger problem" },
+        { phrase: "Back to square one.", translation: "Vuelta a empezar.", context: "Idiom: starting over" },
+      ],
+    },
+    {
+      topic: "Critical Thinking",
+      icon: "🧠",
+      phrases: [
+        { phrase: "This assumption is open to challenge.", translation: "Esta suposición se puede cuestionar.", context: "Critiquing a claim" },
+        { phrase: "The distinction is not always clear-cut.", translation: "La distinción no siempre es clara.", context: "Acknowledging complexity" },
+        { phrase: "We need to interrogate the evidence.", translation: "Debemos examinar la evidencia de cerca.", context: "Analytical stance" },
+        { phrase: "The argument conflates two separate issues.", translation: "El argumento confunde dos cuestiones distintas.", context: "Identifying a logical flaw" },
+        { phrase: "Correlation does not imply causation.", translation: "La correlación no implica causalidad.", context: "Logical reasoning" },
+        { phrase: "This framing has ideological implications.", translation: "Este encuadre tiene implicaciones ideológicas.", context: "Critical analysis" },
+      ],
+    },
+    {
+      topic: "Professional Networking",
+      icon: "🤝",
+      phrases: [
+        { phrase: "I'd love to pick your brain about…", translation: "Me encantaría conocer tu opinión sobre…", context: "Informal professional ask" },
+        { phrase: "Could we set up a call sometime?", translation: "¿Podríamos organizar una llamada?", context: "Networking follow-up" },
+        { phrase: "I've been following your work with great interest.", translation: "He seguido tu trabajo con mucho interés.", context: "Complimenting a professional" },
+        { phrase: "I'd appreciate your perspective on this.", translation: "Agradecería tu perspectiva sobre esto.", context: "Seeking expert opinion" },
+        { phrase: "Let me connect you with someone who might help.", translation: "Déjame ponerte en contacto con alguien que podría ayudar.", context: "Making an introduction" },
+      ],
+    },
+  ],
+
+  // ─── C2 · Mastery ───────────────────────────────────────────────────────────
+  C2: [
+    {
+      topic: "Scholarly Discourse",
+      icon: "🏛️",
+      phrases: [
+        { phrase: "The preponderance of evidence suggests…", translation: "La preponderancia de evidencia sugiere…", context: "Formal academic claim" },
+        { phrase: "This notion is not without its detractors.", translation: "Esta noción no está exenta de detractores.", context: "Acknowledging opposition" },
+        { phrase: "One is compelled to question whether…", translation: "Uno se ve obligado a cuestionar si…", context: "Critical inquiry" },
+        { phrase: "The matter is considerably more nuanced.", translation: "El asunto es considerablemente más matizado.", context: "Resisting oversimplification" },
+        { phrase: "It behoves us to consider…", translation: "Nos corresponde considerar…", context: "Formal obligation" },
+        { phrase: "The ramifications extend well beyond…", translation: "Las ramificaciones se extienden mucho más allá de…", context: "Broad implications" },
+        { phrase: "This line of reasoning is not without merit.", translation: "Esta línea de razonamiento no carece de mérito.", context: "Qualified endorsement" },
+        { phrase: "Such a claim warrants careful scrutiny.", translation: "Tal afirmación merece un escrutinio cuidadoso.", context: "Calling for critical review" },
+      ],
+    },
+    {
+      topic: "Literary & Expressive Language",
+      icon: "📖",
+      phrases: [
+        { phrase: "The irony is not lost on me.", translation: "No se me escapa la ironía.", context: "Noting irony" },
+        { phrase: "To coin a phrase,…", translation: "Por así decirlo,…", context: "Introducing a new expression" },
+        { phrase: "Such is the paradox of…", translation: "Tal es la paradoja de…", context: "Identifying a contradiction" },
+        { phrase: "It is a truth universally acknowledged that…", translation: "Es una verdad generalmente aceptada que…", context: "Literary allusion (Austen)" },
+        { phrase: "The very fabric of… is at stake.", translation: "La esencia misma de… está en juego.", context: "High-stakes framing" },
+        { phrase: "There is something almost Kafkaesque about…", translation: "Hay algo casi kafkiano en…", context: "Literary reference" },
+        { phrase: "To put it in the bluntest of terms,…", translation: "Diciéndolo de la forma más directa posible,…", context: "Being stark and direct" },
+      ],
+    },
+    {
+      topic: "Diplomacy & Tact",
+      icon: "🤝",
+      phrases: [
+        { phrase: "I wonder if we might revisit that assumption.", translation: "Me pregunto si podríamos reconsiderar esa premisa.", context: "Polite challenge" },
+        { phrase: "Perhaps a middle ground could be found.", translation: "Quizás se pueda encontrar un punto intermedio.", context: "Seeking compromise" },
+        { phrase: "With the greatest of respect,…", translation: "Con el mayor de los respetos,…", context: "Formal disagreement" },
+        { phrase: "I would not wish to overstate the case, but…", translation: "No quisiera exagerar, pero…", context: "Hedged assertion" },
+        { phrase: "One might argue, though not without controversy, that…", translation: "Se podría argumentar, aunque no sin controversia, que…", context: "Complex academic hedge" },
+        { phrase: "This is, of course, a matter of some delicacy.", translation: "Esto es, por supuesto, un asunto delicado.", context: "Signalling sensitivity" },
+      ],
+    },
+    {
+      topic: "Advanced Idioms & Collocations",
+      icon: "✨",
+      phrases: [
+        { phrase: "To play devil's advocate,…", translation: "Haciendo de abogado del diablo,…", context: "Presenting opposing view for argument" },
+        { phrase: "The exception that proves the rule.", translation: "La excepción que confirma la regla.", context: "Acknowledging an anomaly" },
+        { phrase: "A Pyrrhic victory.", translation: "Una victoria pírrica.", context: "Win at too high a cost" },
+        { phrase: "To cut the Gordian knot.", translation: "Cortar el nudo gordiano.", context: "Solve a complex problem decisively" },
+        { phrase: "A sea change in perception.", translation: "Un cambio radical en la percepción.", context: "Fundamental transformation" },
+        { phrase: "Tilting at windmills.", translation: "Atacar molinos de viento.", context: "Fighting imaginary enemies (Don Quixote)" },
+        { phrase: "An Achilles heel.", translation: "Un talón de Aquiles.", context: "A fatal weakness" },
+      ],
+    },
+    {
+      topic: "Philosophical & Abstract Language",
+      icon: "🔭",
+      phrases: [
+        { phrase: "The ontological status of… remains contested.", translation: "El estatus ontológico de… sigue siendo debatido.", context: "Philosophical debate" },
+        { phrase: "This presupposes a shared understanding of…", translation: "Esto presupone una comprensión compartida de…", context: "Logical prerequisite" },
+        { phrase: "The normative implications are significant.", translation: "Las implicaciones normativas son significativas.", context: "Ethics / philosophy" },
+        { phrase: "One must grapple with the epistemological question of…", translation: "Uno debe lidiar con la cuestión epistemológica de…", context: "Knowledge theory" },
+        { phrase: "This constitutes a category error.", translation: "Esto constituye un error categorial.", context: "Logical fallacy" },
+        { phrase: "The dialectical tension between… and… is unresolved.", translation: "La tensión dialéctica entre… y… permanece sin resolver.", context: "Philosophical analysis" },
+      ],
+    },
+    {
+      topic: "Media Criticism & Analysis",
+      icon: "📡",
+      phrases: [
+        { phrase: "The narrative framing here is significant.", translation: "El encuadre narrativo aquí es significativo.", context: "Media analysis" },
+        { phrase: "This piece exemplifies confirmation bias.", translation: "Este artículo ejemplifica el sesgo de confirmación.", context: "Media criticism" },
+        { phrase: "The headline buries the lede.", translation: "El titular entierra lo más importante.", context: "Journalistic critique" },
+        { phrase: "This story has been decontextualized.", translation: "Esta historia ha sido descontextualizada.", context: "Critical media literacy" },
+        { phrase: "The source warrants closer examination.", translation: "La fuente merece un examen más detenido.", context: "Source evaluation" },
+        { phrase: "This represents a compelling piece of long-form journalism.", translation: "Esto representa un excelente ejemplo de periodismo de largo aliento.", context: "Media praise" },
+      ],
+    },
+  ],
+};
