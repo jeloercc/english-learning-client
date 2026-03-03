@@ -20,7 +20,7 @@ import type {
   Country,
 } from "@/types";
 
-const PROXY_BASE = "http://localhost:3001/api";
+const PROXY_BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:3001") + "/api";
 const TIMEOUT_MS = 10_000;
 
 // ─── Core fetch wrapper ───────────────────────────────────────────────────────

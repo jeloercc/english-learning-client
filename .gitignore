@@ -20,6 +20,12 @@ pnpm-debug.log*
 *.local
 tsconfig.tsbuildinfo
 
+# ─── Environment / Secrets ────────────────────────────────────────────────────
+env
+.env
+.env.*
+!.env.example
+
 # ─── OS & Editor ──────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

@@ -8,7 +8,16 @@ export interface LevelProgress {
 }
 
 const STORAGE_KEY = "englishLearning_progress";
-export const PROXY_BASE = "http://localhost:3001/api";
+export const PROXY_BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:3001") + "/api";
+
+// Bearer token for /api/progress endpoints. Set VITE_PROGRESS_TOKEN in .env
+const PROGRESS_TOKEN = import.meta.env.VITE_PROGRESS_TOKEN as string | undefined;
+
+function progressHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json", ...extra };
+  if (PROGRESS_TOKEN) headers["Authorization"] = `Bearer ${PROGRESS_TOKEN}`;
+  return headers;
+}
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 
@@ -41,7 +50,7 @@ async function syncVocab(method: "POST" | "DELETE", level: CEFRLevel, term: stri
   try {
     await fetch(`${PROXY_BASE}/progress/vocab`, {
       method,
-      headers: { "Content-Type": "application/json" },
+      headers: progressHeaders(),
       body: JSON.stringify({ level, term }),
     });
   } catch {}
@@ -51,7 +60,7 @@ async function syncGrammar(method: "POST" | "DELETE", level: CEFRLevel, idx: num
   try {
     await fetch(`${PROXY_BASE}/progress/grammar`, {
       method,
-      headers: { "Content-Type": "application/json" },
+      headers: progressHeaders(),
       body: JSON.stringify({ level, idx }),
     });
   } catch {}
@@ -61,7 +70,7 @@ async function syncPhrase(method: "POST" | "DELETE", level: CEFRLevel, phrase: s
   try {
     await fetch(`${PROXY_BASE}/progress/phrase`, {
       method,
-      headers: { "Content-Type": "application/json" },
+      headers: progressHeaders(),
       body: JSON.stringify({ level, phrase }),
     });
   } catch {}
@@ -75,11 +84,19 @@ async function syncPhrase(method: "POST" | "DELETE", level: CEFRLevel, phrase: s
  */
 export async function loadFromServer(): Promise<void> {
   try {
-    const res = await fetch(`${PROXY_BASE}/progress`);
-    if (!res.ok) return;
+    const res = await fetch(`${PROXY_BASE}/progress`, {
+      headers: progressHeaders(),
+    });
+    if (!res.ok) {
+      console.warn(`[progress] Server sync failed: HTTP ${res.status}`);
+      return;
+    }
 
     const json = await res.json();
-    if (!json.success || !json.data) return;
+    if (!json.success || !json.data) {
+      console.warn("[progress] Server sync failed: unexpected response shape");
+      return;
+    }
 
     const { vocabulary, grammar, phrases } = json.data as {
       vocabulary: Partial<Record<CEFRLevel, string[]>>;
@@ -103,7 +120,9 @@ export async function loadFromServer(): Promise<void> {
     }
 
     save(data);
-  } catch {}
+  } catch (err) {
+    console.warn("[progress] Server sync error:", err instanceof Error ? err.message : err);
+  }
 }
 
 // ─── Progress API (same public signatures as before) ─────────────────────────
@@ -201,10 +220,10 @@ export const progress = {
       data[level] = { vocabularyLearned: [], grammarCompleted: [], phrasesLearned: [], wordsSearched: [] };
       save(data);
       // Fire-and-forget server reset
-      fetch(`${PROXY_BASE}/progress/reset/${level}`, { method: "DELETE" }).catch(() => {});
+      fetch(`${PROXY_BASE}/progress/reset/${level}`, { method: "DELETE", headers: progressHeaders() }).catch(() => {});
     } else {
       localStorage.removeItem(STORAGE_KEY);
-      fetch(`${PROXY_BASE}/progress/reset`, { method: "DELETE" }).catch(() => {});
+      fetch(`${PROXY_BASE}/progress/reset`, { method: "DELETE", headers: progressHeaders() }).catch(() => {});
     }
   },
 };

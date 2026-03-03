@@ -21,9 +21,12 @@ function RuleCard({ rule, index, completed, onToggle }: RuleCardProps) {
       }`}
     >
       {/* Header row */}
-      <button
-        className="w-full flex items-center gap-3 px-4 py-3 text-left"
+      <div
+        role="button"
+        tabIndex={0}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer"
         onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setOpen((o) => !o); }}
       >
         <span className="font-mono text-xs text-zinc-400 w-5 shrink-0">{index + 1}.</span>
         <span className="flex-1 font-mono text-sm font-semibold text-zinc-800">
@@ -48,7 +51,7 @@ function RuleCard({ rule, index, completed, onToggle }: RuleCardProps) {
         ) : (
           <ChevronRight size={14} className="text-zinc-400 shrink-0" />
         )}
-      </button>
+      </div>
 
       {/* Expandable content */}
       {open && (
