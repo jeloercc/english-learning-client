@@ -133,7 +133,7 @@ export default function Grammar({ level }: GrammarProps) {
             · {completed.length} completed ({pct}%)
           </span>
         </div>
-        <div className="mt-1.5 h-1.5 w-48 bg-zinc-200">
+        <div className="mt-1.5 h-1.5 w-full max-w-48 bg-zinc-200">
           <div
             className="h-full bg-blue-500 transition-all"
             style={{ width: `${pct}%` }}

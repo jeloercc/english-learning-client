@@ -272,9 +272,9 @@ export default function DictionarySearch() {
   };
 
   return (
-    <div className="h-full flex gap-6">
+    <div className="h-full flex flex-col md:flex-row gap-6">
       {/* Left: Search + History */}
-      <aside className="w-52 shrink-0 space-y-4">
+      <aside className="w-full md:w-52 shrink-0 space-y-4">
         <div className="space-y-2">
           <AutocompleteInput
             value={query}
@@ -324,24 +324,27 @@ export default function DictionarySearch() {
         {history.length === 0 && !entry && (
           <div className="space-y-1">
             <p className="text-xs font-mono text-zinc-400 uppercase tracking-wide">Try these</p>
-            {["eloquent", "resilient", "nuance", "pragmatic", "ephemeral"].map((w) => (
-              <button
-                key={w}
-                onClick={() => searchWithMeta(w)}
-                className="block w-full text-left px-2 py-1 text-sm font-mono text-zinc-500
-                           hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
-              >
-                {w}
-              </button>
-            ))}
+            <div className="flex flex-wrap md:flex-col gap-1">
+              {["eloquent", "resilient", "nuance", "pragmatic", "ephemeral"].map((w) => (
+                <button
+                  key={w}
+                  onClick={() => searchWithMeta(w)}
+                  className="px-2 py-1 text-sm font-mono text-zinc-500
+                             hover:bg-zinc-100 hover:text-zinc-800 transition-colors text-left"
+                >
+                  {w}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </aside>
 
-      <Separator orientation="vertical" />
+      <Separator className="md:hidden" />
+      <Separator orientation="vertical" className="hidden md:block" />
 
       {/* Right: Results */}
-      <main className="flex-1 overflow-y-auto pr-2">
+      <main className="flex-1 overflow-y-auto md:pr-2">
         {!loading && !error && !entry && (
           <div className="flex flex-col items-center justify-center h-64 gap-3 text-zinc-300">
             <BookOpen size={40} strokeWidth={1} />
