@@ -262,9 +262,9 @@ export default function Vocabulary({ level }: VocabularyProps) {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
+      <div className="flex items-start sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
             <BookOpen size={15} className="text-zinc-400" />
             <span className="font-mono text-sm font-semibold text-zinc-700">
               {words.length} words
@@ -273,7 +273,7 @@ export default function Vocabulary({ level }: VocabularyProps) {
               · {learnedCount} learned ({pct}%)
             </span>
           </div>
-          <div className="mt-1.5 h-1.5 w-48 bg-zinc-200">
+          <div className="mt-1.5 h-1.5 w-full max-w-48 bg-zinc-200">
             <div className="h-full bg-green-500 transition-all" style={{ width: `${pct}%` }} />
           </div>
           <p className="text-xs font-mono text-zinc-400 mt-1.5">
@@ -282,7 +282,7 @@ export default function Vocabulary({ level }: VocabularyProps) {
         </div>
         <button
           onClick={() => { progress.reset(level); setLearned([]); }}
-          className="flex items-center gap-1 text-xs font-mono text-zinc-400 hover:text-red-500 transition-colors"
+          className="flex items-center gap-1 text-xs font-mono text-zinc-400 hover:text-red-500 transition-colors shrink-0"
         >
           <RotateCcw size={11} /> Reset
         </button>

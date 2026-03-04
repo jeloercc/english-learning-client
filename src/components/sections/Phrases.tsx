@@ -97,7 +97,7 @@ export default function Phrases({ level }: PhrasesProps) {
             · {learnedCount} learned ({pct}%)
           </span>
         </div>
-        <div className="mt-1.5 h-1.5 w-48 bg-zinc-200">
+        <div className="mt-1.5 h-1.5 w-full max-w-48 bg-zinc-200">
           <div
             className="h-full bg-amber-500 transition-all"
             style={{ width: `${pct}%` }}
