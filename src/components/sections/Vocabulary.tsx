@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { CheckCircle, Circle, RotateCcw, BookOpen, Volume2, Loader2 } from "lucide-react";
 import { VOCABULARY, type CEFRLevel, type VocabWord } from "@/data/vocabulary";
 import { progress } from "@/lib/progress";
+import { lookupWord } from "@/lib/api";
 import { Separator } from "@/components/ui/separator";
 import type { DictionaryEntry } from "@/types";
 
@@ -32,12 +33,7 @@ const liveCache: Record<string, DictionaryEntry | null> = {};
 async function fetchLiveEntry(term: string): Promise<DictionaryEntry | null> {
   if (term in liveCache) return liveCache[term];
   try {
-    const resp = await fetch(
-      `http://localhost:3001/api/dictionary/${encodeURIComponent(term.toLowerCase())}`,
-      { headers: { Accept: "application/json" } }
-    );
-    const json = await resp.json();
-    const result = json.success && json.data ? json.data : null;
+    const result = await lookupWord(term);
     liveCache[term] = result;
     return result;
   } catch {

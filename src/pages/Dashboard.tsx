@@ -8,13 +8,14 @@
  */
 
 import { useState, useEffect } from "react";
-import { BookOpen, Layers, Search, MessageSquare, ChevronRight, Headphones, PenLine, Menu } from "lucide-react";
+import { BookOpen, Layers, Search, MessageSquare, ChevronRight, Headphones, PenLine, Menu, LogOut, User as UserIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { CEFRLevel } from "@/data/vocabulary";
 import { VOCABULARY } from "@/data/vocabulary";
 import { GRAMMAR } from "@/data/grammar";
 import { PHRASES } from "@/data/phrases";
 import { progress, loadFromServer } from "@/lib/progress";
+import { useAuth } from "@/contexts/AuthContext";
 import Vocabulary from "@/components/sections/Vocabulary";
 import Grammar from "@/components/sections/Grammar";
 import DictionarySearch from "@/components/sections/DictionarySearch";
@@ -26,6 +27,12 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Section = "vocabulary" | "grammar" | "dictionary" | "phrases" | "pronunciation" | "writing";
 
@@ -174,6 +181,7 @@ function SidebarContent({ activeLevel, setActiveLevel, activeSection, setActiveS
 }
 
 export default function Dashboard() {
+  const { user, logout } = useAuth();
   const [activeLevel, setActiveLevel] = useState<CEFRLevel>("A1");
   const [activeSection, setActiveSection] = useState<Section>("vocabulary");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -220,6 +228,25 @@ export default function Dashboard() {
               {currentLevel.id}<span className="hidden sm:inline"> — {currentLevel.description}</span>
             </span>
           </div>
+
+          {/* Account menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-1.5 border border-zinc-200 bg-white px-2 sm:px-3 py-1 hover:border-zinc-300 transition-colors">
+                <UserIcon size={12} className="text-zinc-400" />
+                <span className="font-mono text-xs text-zinc-700 max-w-[8rem] truncate hidden sm:inline">
+                  {user?.email}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-none font-mono text-xs">
+              <div className="px-2 py-1.5 text-zinc-400 truncate sm:hidden">{user?.email}</div>
+              <DropdownMenuItem onClick={logout} className="gap-2 cursor-pointer">
+                <LogOut size={13} />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

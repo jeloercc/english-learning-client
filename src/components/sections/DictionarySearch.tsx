@@ -8,6 +8,7 @@ import {
   getWordSimilar,
   getWordAdjectives,
   getAutocomplete,
+  PROXY_BASE,
 } from "@/lib/api";
 
 const POS_COLORS: Record<string, string> = {
@@ -231,7 +232,7 @@ export default function DictionarySearch() {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
       const resp = await fetch(
-        `http://localhost:3001/api/dictionary/${encodeURIComponent(trimmed.toLowerCase())}`,
+        `${PROXY_BASE}/dictionary/${encodeURIComponent(trimmed.toLowerCase())}`,
         { signal: controller.signal, headers: { Accept: "application/json" } }
       );
       clearTimeout(timeout);
