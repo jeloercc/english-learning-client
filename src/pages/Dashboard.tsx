@@ -207,13 +207,14 @@ function SidebarContent({ activeLevel, setActiveLevel, activeSection, setActiveS
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
+  const { language } = useLanguage();
   const [activeLevel, setActiveLevel] = useState<CEFRLevel>("A1");
   const [activeSection, setActiveSection] = useState<Section>("vocabulary");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     loadFromServer().catch(() => {});
-  }, []);
+  }, [language]);
 
   const currentLevel = LEVELS.find((l) => l.id === activeLevel)!;
   const currentSection = SECTIONS.find((s) => s.id === activeSection)!;

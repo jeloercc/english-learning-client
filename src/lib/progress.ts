@@ -1,5 +1,6 @@
 import type { CEFRLevel } from "@/data";
 import { authStore } from "@/lib/authStore";
+import { languageStore } from "@/lib/languageStore";
 import { progressRequest, ApiError } from "@/lib/api";
 
 export interface LevelProgress {
@@ -9,12 +10,14 @@ export interface LevelProgress {
   wordsSearched: string[];       // dictionary words searched
 }
 
-// Namespaced per user so two accounts on the same browser never mix local
-// progress — falls back to an "anon" bucket, which is unreachable in practice
-// since the dashboard is gated behind auth.
+// Namespaced per user and per active learning language so two accounts on
+// the same browser never mix local progress, and switching languages never
+// mixes English/Spanish progress either — falls back to an "anon" bucket,
+// which is unreachable in practice since the dashboard is gated behind auth.
 function storageKey(): string {
   const userId = authStore.getState().user?.id ?? "anon";
-  return `progress:${userId}`;
+  const language = languageStore.getState();
+  return `progress:${userId}:${language}`;
 }
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
@@ -46,19 +49,19 @@ function save(data: Record<CEFRLevel, LevelProgress>) {
 
 async function syncVocab(method: "POST" | "DELETE", level: CEFRLevel, term: string): Promise<void> {
   try {
-    await progressRequest("/vocab", { method, body: JSON.stringify({ level, term }) });
+    await progressRequest("/vocab", { method, body: JSON.stringify({ level, term, language: languageStore.getState() }) });
   } catch {}
 }
 
 async function syncGrammar(method: "POST" | "DELETE", level: CEFRLevel, idx: number): Promise<void> {
   try {
-    await progressRequest("/grammar", { method, body: JSON.stringify({ level, idx }) });
+    await progressRequest("/grammar", { method, body: JSON.stringify({ level, idx, language: languageStore.getState() }) });
   } catch {}
 }
 
 async function syncPhrase(method: "POST" | "DELETE", level: CEFRLevel, phrase: string): Promise<void> {
   try {
-    await progressRequest("/phrase", { method, body: JSON.stringify({ level, phrase }) });
+    await progressRequest("/phrase", { method, body: JSON.stringify({ level, phrase, language: languageStore.getState() }) });
   } catch {}
 }
 
@@ -80,7 +83,7 @@ export async function loadFromServer(): Promise<void> {
         grammar: Partial<Record<CEFRLevel, number[]>>;
         phrases: Partial<Record<CEFRLevel, string[]>>;
       };
-    }>("");
+    }>(`?language=${languageStore.getState()}`);
 
     if (!json.success || !json.data) {
       console.warn("[progress] Server sync failed: unexpected response shape");
@@ -196,14 +199,15 @@ export const progress = {
   },
 
   reset(level?: CEFRLevel) {
+    const language = languageStore.getState();
     if (level) {
       const data = load();
       data[level] = { vocabularyLearned: [], grammarCompleted: [], phrasesLearned: [], wordsSearched: [] };
       save(data);
-      progressRequest(`/reset/${level}`, { method: "DELETE" }).catch(() => {});
+      progressRequest(`/reset/${level}?language=${language}`, { method: "DELETE" }).catch(() => {});
     } else {
       localStorage.removeItem(storageKey());
-      progressRequest("/reset", { method: "DELETE" }).catch(() => {});
+      progressRequest(`/reset?language=${language}`, { method: "DELETE" }).catch(() => {});
     }
   },
 };
