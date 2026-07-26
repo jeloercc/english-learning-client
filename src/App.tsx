@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import LandingPage from "@/pages/LandingPage";
 import Dashboard from "@/pages/Dashboard";
 import AuthScreen from "@/pages/AuthScreen";
@@ -32,7 +33,9 @@ export default function App() {
             path="/app"
             element={
               <RequireAuth>
-                <Dashboard />
+                <LanguageProvider>
+                  <Dashboard />
+                </LanguageProvider>
               </RequireAuth>
             }
           />

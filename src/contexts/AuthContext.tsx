@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { User } from "@/types";
 import { authStore } from "@/lib/authStore";
+import { languageStore } from "@/lib/languageStore";
 import { ApiError, fetchMe, loginUser, registerUser } from "@/lib/api";
 import { loadFromServer } from "@/lib/progress";
 
@@ -39,17 +40,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const res = await loginUser(email, password);
     authStore.setSession(res.user, res.token);
+    languageStore.reload();
     await loadFromServer();
   }, []);
 
   const register = useCallback(async (email: string, password: string, inviteCode: string) => {
     const res = await registerUser(email, password, inviteCode);
     authStore.setSession(res.user, res.token);
+    languageStore.reload();
     await loadFromServer();
   }, []);
 
   const logout = useCallback(() => {
     authStore.clearSession();
+    languageStore.reload();
   }, []);
 
   return (
