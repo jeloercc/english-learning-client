@@ -1732,8 +1732,10 @@ git commit -m "feat(progress): namespace localStorage and backend sync by active
 - Modify: `src/components/sections/Pronunciation.tsx`
 
 **Interfaces:**
-- Produces (`speech.ts`): `speak(text: string, lang: string): Promise<void>`, `stopSpeaking(): void`.
-- Consumes: `useLanguage()` (Task 8) for `config.hasAudioApi` / `config.speechLocale` / `config.hasIPA`.
+- Produces (`speech.ts`): `speak(text: string, lang: string): Promise<void>`, `stopSpeaking(): void`, `getSpanishVoice(): Promise<SpeechSynthesisVoice | null>`, `hasSpanishVoice(): Promise<boolean>`, `isSpeechSynthesisSupported(): boolean`.
+- Consumes: `useLanguage()` (Task 8) for `config.hasAudioApi` / `config.speechLocale` / `config.hasIPA`. Also `Tooltip`/`TooltipTrigger`/`TooltipContent`/`TooltipProvider` from `@/components/ui/tooltip` (already in the repo, currently unused anywhere — this is its first consumer).
+
+**Voice selection is the tricky part of this task** — `speechSynthesis.getVoices()` returns `[]` synchronously on the first call in Chromium browsers; the real voice list only arrives later via the `voiceschanged` event. Some engines (older Firefox/Safari) never fire that event at all, so a pure event-wait can hang forever — a timeout fallback is required. Once voices are loaded, prefer regional Latin American/neutral tags over `es-ES`, and accept any other `es-*` voice as a last resort, per the confirmed ranking `es-MX`/`es-419`/`es-US` > `es-ES` > any `es-*`.
 
 - [ ] **Step 1: Create `src/lib/speech.ts`**
 
@@ -1741,22 +1743,88 @@ git commit -m "feat(progress): namespace localStorage and backend sync by active
 // src/lib/speech.ts — browser SpeechSynthesis wrapper for languages without a
 // backend audio API (Spanish, phase 1).
 
-export function speak(text: string, lang: string): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      resolve();
+const SPANISH_VOICE_PRIORITY = ["es-mx", "es-419", "es-us"];
+
+let cachedVoices: SpeechSynthesisVoice[] | null = null;
+let voicesPromise: Promise<SpeechSynthesisVoice[]> | null = null;
+
+// getVoices() returns [] synchronously on first call in Chrome — the real
+// list arrives async via 'voiceschanged'. Some engines never fire that
+// event, so a short timeout guards against hanging forever with no voices.
+function loadVoices(): Promise<SpeechSynthesisVoice[]> {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    return Promise.resolve([]);
+  }
+  if (cachedVoices) return Promise.resolve(cachedVoices);
+  if (voicesPromise) return voicesPromise;
+
+  voicesPromise = new Promise((resolve) => {
+    const synth = window.speechSynthesis;
+    const existing = synth.getVoices();
+    if (existing.length > 0) {
+      cachedVoices = existing;
+      resolve(existing);
       return;
     }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
 
-    const voices = window.speechSynthesis.getVoices();
-    const exact = voices.find((v) => v.lang === lang);
-    const family = voices.find((v) => v.lang.startsWith(lang.split("-")[0]));
-    const voice = exact ?? family;
-    if (voice) utterance.voice = voice;
+    const timeoutId = window.setTimeout(() => {
+      synth.removeEventListener("voiceschanged", onVoicesChanged);
+      cachedVoices = synth.getVoices();
+      resolve(cachedVoices);
+    }, 1000);
 
+    function onVoicesChanged() {
+      const voices = synth.getVoices();
+      if (voices.length > 0) {
+        window.clearTimeout(timeoutId);
+        synth.removeEventListener("voiceschanged", onVoicesChanged);
+        cachedVoices = voices;
+        resolve(voices);
+      }
+    }
+    synth.addEventListener("voiceschanged", onVoicesChanged);
+  });
+
+  return voicesPromise;
+}
+
+function pickSpanishVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+  const esVoices = voices.filter((v) => v.lang.toLowerCase().startsWith("es"));
+  if (esVoices.length === 0) return null;
+
+  for (const preferred of SPANISH_VOICE_PRIORITY) {
+    const match = esVoices.find((v) => v.lang.toLowerCase() === preferred);
+    if (match) return match;
+  }
+  const esES = esVoices.find((v) => v.lang.toLowerCase() === "es-es");
+  if (esES) return esES;
+
+  return esVoices[0]; // any other es-* (e.g. es-AR, es-CO) beats no voice at all
+}
+
+export async function getSpanishVoice(): Promise<SpeechSynthesisVoice | null> {
+  const voices = await loadVoices();
+  return pickSpanishVoice(voices);
+}
+
+export async function hasSpanishVoice(): Promise<boolean> {
+  return (await getSpanishVoice()) !== null;
+}
+
+export async function speak(text: string, lang: string): Promise<void> {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = lang;
+
+  const voices = await loadVoices();
+  const exact = voices.find((v) => v.lang.toLowerCase() === lang.toLowerCase());
+  const voice = exact ?? pickSpanishVoice(voices);
+  if (voice) utterance.voice = voice;
+
+  return new Promise((resolve) => {
     utterance.onend = () => resolve();
     utterance.onerror = () => resolve();
     window.speechSynthesis.speak(utterance);
@@ -1779,24 +1847,42 @@ export function isSpeechSynthesisSupported(): boolean {
 Add imports:
 ```typescript
 import { useLanguage } from "@/contexts/LanguageContext";
-import { speak, stopSpeaking, isSpeechSynthesisSupported } from "@/lib/speech";
+import { speak, stopSpeaking, isSpeechSynthesisSupported, hasSpanishVoice } from "@/lib/speech";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 ```
 
 Add `const { config } = useLanguage();` at the top of `export default function Pronunciation({ level }: PronunciationProps)`, and use `CONTENT[language].vocabulary[level]` per Task 7 (this file wasn't touched in Task 7 — do that import swap here too: replace `import { VOCABULARY, type CEFRLevel, type VocabWord } from "@/data/vocabulary";` with `import { CONTENT, type CEFRLevel, type VocabWord } from "@/data";` and `const { language, config } = useLanguage();`, `const words = CONTENT[language].vocabulary[level];`).
+
+Add state that tracks whether audio is available at all for the active language (`null` while checking, so the button isn't flashed disabled-then-enabled on every mount):
+```typescript
+const [audioAvailable, setAudioAvailable] = useState<boolean | null>(null);
+
+useEffect(() => {
+  if (config.hasAudioApi) {
+    setAudioAvailable(true); // English: MW API, unrelated to SpeechSynthesis support
+    return;
+  }
+  if (!isSpeechSynthesisSupported()) {
+    setAudioAvailable(false);
+    return;
+  }
+  let cancelled = false;
+  hasSpanishVoice().then((available) => {
+    if (!cancelled) setAudioAvailable(available);
+  });
+  return () => { cancelled = true; };
+}, [config.hasAudioApi]);
+```
 
 Replace `fetchAudio` (`src/components/sections/Pronunciation.tsx:110-118`) and `playWord` (`120-141`) with a single language-aware `playWord`:
 
 ```typescript
 const playWord = useCallback(async (term: string, index: number) => {
+  if (audioAvailable === false) return; // degraded state — button should already be disabled
   setPlayingIndex(index);
 
   if (!config.hasAudioApi) {
     // Spanish (phase 1): browser SpeechSynthesis, no fetch, no caching needed.
-    if (!isSpeechSynthesisSupported()) {
-      setAudioStates((s) => ({ ...s, [term]: "error" }));
-      setPlayingIndex(null);
-      return;
-    }
     setAudioStates((s) => ({ ...s, [term]: "ready" }));
     await speak(term, config.speechLocale);
     setPlayingIndex(null);
@@ -1817,7 +1903,7 @@ const playWord = useCallback(async (term: string, index: number) => {
     audio.onerror = () => { setPlayingIndex(null); resolve(); };
     audio.play().catch(() => { setPlayingIndex(null); resolve(); });
   });
-}, [config, fetchAudio]);
+}, [config, fetchAudio, audioAvailable]);
 ```
 
 Keep the existing `fetchAudio` function (`Pronunciation.tsx:110-118`) as-is — it's only called from the `config.hasAudioApi` branch above.
@@ -1833,7 +1919,37 @@ const stopAll = () => {
 };
 ```
 
-- [ ] **Step 3: Hide IPA-specific copy when `!config.hasIPA`**
+- [ ] **Step 3: Disable the play button with a tooltip when no Spanish voice is available**
+
+The app must stay 100% functional without audio — this is a degradation, not an error state. Wrap each play button (and the "Play All" control) so it disables cleanly with an explanatory tooltip when `audioAvailable === false`. Radix's `TooltipTrigger` needs a focusable/hoverable child even when the inner `<button>` is `disabled` (native `disabled` buttons suppress pointer events, which would silently kill the tooltip too), so wrap the button in a `<span>`:
+
+```tsx
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span tabIndex={audioAvailable === false ? 0 : undefined}>
+        <button
+          onClick={() => playWord(word.term, index)}
+          disabled={audioAvailable === false || audioState === "loading"}
+          className={cn(
+            "...", // existing classes
+            audioAvailable === false && "opacity-40 cursor-not-allowed"
+          )}
+        >
+          {audioState === "loading" ? <Loader2 size={13} className="animate-spin" /> : <Volume2 size={13} />}
+        </button>
+      </span>
+    </TooltipTrigger>
+    {audioAvailable === false && (
+      <TooltipContent>Audio no disponible en este dispositivo</TooltipContent>
+    )}
+  </Tooltip>
+</TooltipProvider>
+```
+
+Apply the same `disabled={audioAvailable === false}` guard to the "Play All" button. A single `TooltipProvider` at the top of the component (or already present higher in the tree — check `App.tsx`/`Dashboard.tsx` first to avoid nesting redundant providers) is enough to wrap all per-word tooltips.
+
+- [ ] **Step 4: Hide IPA-specific copy when `!config.hasIPA`**
 
 Replace the column header (`src/components/sections/Pronunciation.tsx:245`):
 ```tsx
@@ -1848,19 +1964,25 @@ with:
 
 (`{word.phonetic && (...)}` at line 55 already no-ops correctly once `es` vocabulary entries simply omit `phonetic` — no change needed there.)
 
-- [ ] **Step 4: Add the empty-state guard (phase-1 Spanish B1–C2)**
+- [ ] **Step 5: Add the empty-state guard (phase-1 Spanish B1–C2)**
 
 Around the word list, guard on `words.length === 0` the same way as Task 7's Vocabulary/Grammar/Phrases changes.
 
-- [ ] **Step 5: Manual test**
+- [ ] **Step 6: Manual test — with and without Spanish voices**
 
-Run: `npm run dev`, switch to Español, open Pronunciation for A1, click ▶ on a word — confirm the browser speaks the Spanish word aloud (voice may default to whatever `es-*` voice the OS/browser provides if `es-MX` isn't installed — that's expected, the `family` fallback in `speech.ts` handles it). Confirm "Play All" and "Stop" both work. Switch back to English and confirm MW audio playback is unaffected.
+Run: `npm run dev`, switch to Español, open Pronunciation for A1, click ▶ on a word — confirm the browser speaks the Spanish word aloud using the best available `es-*` voice (check `speechSynthesis.getVoices()` in the console to see which voice actually got picked). Confirm "Play All" and "Stop" both work. Switch back to English and confirm MW audio playback is unaffected.
 
-- [ ] **Step 6: Commit**
+Then simulate the no-voice case to verify graceful degradation: in DevTools console, before opening Pronunciation, run
+```js
+Object.defineProperty(window.speechSynthesis, 'getVoices', { value: () => [] });
+```
+(and if testing the `voiceschanged` path specifically, also dispatch `window.speechSynthesis.dispatchEvent(new Event('voiceschanged'))` after stubbing `getVoices` to return `[]` — confirms the promise still resolves via the timeout fallback rather than hanging). Reload isn't needed since the stub is live; open Pronunciation for Español and confirm: the play buttons render disabled/dimmed, hovering shows the "Audio no disponible en este dispositivo" tooltip, and every other part of the app (word list, definitions, examples, progress tracking) still works normally.
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src/lib/speech.ts src/components/sections/Pronunciation.tsx
-git commit -m "feat(pronunciation): add browser SpeechSynthesis path for Spanish audio"
+git commit -m "feat(pronunciation): add browser SpeechSynthesis path for Spanish audio with robust voice selection"
 ```
 
 ---
@@ -2238,3 +2360,340 @@ Only report the feature complete, and only push, after every box above is checke
 - **Placeholder scan:** none found — every task has literal file paths, literal diffs/full file contents, and literal verification commands.
 - **Type consistency:** `CEFRLevel`/`VocabWord`/`GrammarRule`/`Phrase`/`PhraseTopic` are defined once in Task 1 and only ever re-exported afterward; `LanguageCode`/`LanguageConfig`/`LANGUAGES` defined once in Task 3; `CONTENT`/`LanguageContent` defined once in Task 7; `languageStore`/`useLanguage` defined once in Task 8 and consumed identically (same method names: `getState()`, `subscribe()`, `setLanguage()`) everywhere else.
 - **Known ordering caveat:** Task 8 must execute before Task 7 despite the numbering, because Task 7's component edits call `useLanguage()`. Flagged explicitly in Task 7 Step 7 and repeated here.
+
+---
+
+## Addendum (2026-07-26): Tasks 15-16
+
+Added per follow-up user request, appended without altering Tasks 1-14 or their execution order. Both depend on Task 8 (`languageStore`/`useLanguage`) and Task 9 (Dashboard sidebar selectors) already being in place; Task 15 also benefits from Task 3's `LANGUAGES` table existing (for consistent flag/label text) but doesn't strictly require it.
+
+---
+
+## Task 15: Bilingual branding — "Learn English and Spanish, all levels (A1-C2)"
+
+**Files:**
+- Modify: `index.html`, `README.md`, `src/pages/LandingPage.tsx`, `src/pages/Dashboard.tsx`
+
+**Goal:** every place that currently states or implies "English learning" as the app's sole purpose should reflect that it teaches **both** English and Spanish. Verified via research pass — no `document.title =`/Helmet usage anywhere in `src/`, so the static `<title>` in `index.html` is the only page-title surface.
+
+- [ ] **Step 1: `index.html`**
+
+Replace:
+```html
+<title>English Learning — Free tools for every CEFR level</title>
+<meta name="description" content="Learn English for free with 480+ vocabulary cards, grammar guides, pronunciation drills, a live dictionary, writing checker, and essential phrases. All CEFR levels from A1 to C2." />
+```
+with:
+```html
+<title>English &amp; Spanish Learning — Free tools for every CEFR level</title>
+<meta name="description" content="Learn English and Spanish for free with vocabulary cards, grammar guides, pronunciation drills, a live dictionary, writing checker, and essential phrases. All CEFR levels from A1 to C2." />
+```
+
+- [ ] **Step 2: `README.md`** (lines 1-3)
+
+Replace:
+```markdown
+# english-learning-client
+Personal English learning dashboard structured around CEFR levels (A1 → C2).
+```
+with:
+```markdown
+# english-learning-client
+Personal English & Spanish learning dashboard structured around CEFR levels (A1 → C2).
+Aprende inglés y español — todos los niveles (A1-C2).
+```
+
+- [ ] **Step 3: `src/pages/LandingPage.tsx`**
+
+Replace each of the following (line numbers per the pre-Task-15 file; re-locate by content if a prior task in this plan already shifted them):
+- Line 161 badge text: `Free English Tools · A1 to C2` → `Free English & Spanish Tools · A1 to C2`
+- Lines 164-165 `<h1>`: `Learn English at your own pace.` / `Every level, every tool, no paywall.` → `Learn English and Spanish at your own pace.` / `Aprende inglés y español — todos los niveles (A1-C2), sin costo.`
+- Lines 167-169 subhead: `...structured by CEFR levels from beginner to mastery.` → `...structured by CEFR levels from beginner to mastery, for both languages.`
+- Line 343 wordmark: `English` → `English + Español` (adjust surrounding classes only if the longer string breaks the layout — check visually in the dev server; this is a judgment call for whoever executes this step, not a hard requirement to match verbatim)
+- Lines 345-347 footer: `A free English learning platform structured by CEFR levels. Built for self-learners who want real tools, not gamification.` → `A free English and Spanish learning platform structured by CEFR levels. Built for self-learners who want real tools, not gamification.`
+- Line 376 copyright: `© 2026 English Learning. All rights reserved.` → `© 2026 English & Spanish Learning. All rights reserved.`
+
+- [ ] **Step 4: `src/pages/Dashboard.tsx`**
+
+Replace the file header comment (lines 2-4):
+```typescript
+// Dashboard.tsx — English Learning Dashboard
+// Personal English learning app structured by CEFR levels (A1 → C2).
+```
+with:
+```typescript
+// Dashboard.tsx — English & Spanish Learning Dashboard
+// Personal English & Spanish learning app structured by CEFR levels (A1 → C2).
+```
+
+Replace the sidebar brand link/text (lines 217-221, `English` + `Personal Learning Dashboard`) with `English + Español` (or equivalent) + `Personal Learning Dashboard` — same layout judgment call as Step 3's wordmark; keep both brand mentions consistent with whichever exact wording is chosen.
+
+- [ ] **Step 5: Manual check**
+
+Run `npm run dev` (and `npm run build` for the `index.html`/type-safe files). Visually confirm: browser tab title, landing page hero/badge/footer/copyright, and the dashboard sidebar brand all read as bilingual, with no leftover "English learning" phrasing implying Spanish is absent. Confirm nothing overflows/wraps awkwardly at mobile width (375px) with the longer brand strings.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add index.html README.md src/pages/LandingPage.tsx src/pages/Dashboard.tsx
+git commit -m "docs(branding): update titles, meta, landing, and dashboard copy for bilingual English+Spanish"
+```
+
+---
+
+## Task 16: Persist language + CEFR level preferences via backend, localStorage as cache
+
+**Files:**
+- Create: `src/lib/cefrLevelStore.ts`, `src/lib/preferencesSync.ts`
+- Modify: `src/types/index.ts`, `src/lib/api.ts`, `src/contexts/AuthContext.tsx`, `src/contexts/LanguageContext.tsx`, `src/pages/Dashboard.tsx`
+
+**Important — backend research finding:** the backend (`english-learning-app/routes/auth.js`) **already implements everything requested**: `GET /api/auth/me` already returns `{ id, email, preferences }` (line 112), `PATCH /api/auth/preferences` already accepts `{ learningLanguage, cefrLevel }`, validates against the same `en`/`es` and `A1`-`C2` enums used elsewhere in this plan, and persists to a `preferences` JSON column already present on the `users` table (`db/database.js`, libSQL/Turso — not Prisma, despite this plan's earlier "Tech Stack" line; no schema migration needed, it already ran). **No backend work is required for this task** — it is 100% frontend wiring to consume endpoints that already exist. If a future audit of `english-learning-app` finds this description stale (endpoint renamed/removed), stop and reconcile before writing frontend code against it.
+
+**Interfaces:**
+- Produces (`cefrLevelStore.ts`): same shape as `languageStore.ts` (Task 8) — `getState()`, `setLevel()`, `reload()`, `subscribe()` — because CEFR level currently has **no localStorage persistence at all** (`Dashboard.tsx:185`, plain `useState<CEFRLevel>("A1")`, confirmed via research; resets on every reload today). This task introduces that local cache as well as the backend sync, since the user's phrasing ("además del localStorage actual") assumed a cache that doesn't yet exist for level — flagging this discrepancy rather than silently assuming.
+- Produces (`preferencesSync.ts`): `syncPreferences(patch: { learningLanguage?: LanguageCode; cefrLevel?: CEFRLevel }): void` — fire-and-forget PATCH, mirrors the existing swallow-errors pattern in `progress.ts`'s `syncVocab`/`syncGrammar`/`syncPhrase`.
+- Consumes: `authStore` (existing), `languageStore`/`useLanguage` (Task 8), `fetchMe`/`jsonRequest` pattern (existing `api.ts`).
+
+- [ ] **Step 1: Add `preferences` to the `User` type**
+
+In `src/types/index.ts`, add near the existing `User` interface:
+```typescript
+import type { LanguageCode } from "@/data/languages";
+import type { CEFRLevel } from "@/data/types";
+
+export interface UserPreferences {
+  learningLanguage?: LanguageCode;
+  cefrLevel?: CEFRLevel;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  preferences?: UserPreferences;
+}
+```
+
+- [ ] **Step 2: Add `updatePreferences` to `api.ts`**
+
+Below `fetchMe` (`src/lib/api.ts:253-254`):
+```typescript
+export const updatePreferences = (
+  patch: Partial<{ learningLanguage: LanguageCode; cefrLevel: CEFRLevel }>,
+  token: string
+): Promise<{ preferences: UserPreferences }> =>
+  jsonRequest<{ preferences: UserPreferences }>(
+    "/auth/preferences",
+    { method: "PATCH", body: JSON.stringify(patch) },
+    token
+  );
+```
+(Add the `LanguageCode`/`CEFRLevel`/`UserPreferences` imports at the top of `api.ts` alongside its existing `User`/`AuthResponse` imports from `@/types`.)
+
+- [ ] **Step 3: Create `src/lib/cefrLevelStore.ts`**
+
+Verbatim copy of `languageStore.ts`'s pattern (Task 8, Step 1), swapped for level:
+```typescript
+// src/lib/cefrLevelStore.ts — framework-agnostic active-CEFR-level store.
+// Mirrors languageStore.ts so Dashboard.tsx can persist the level choice
+// per-user in localStorage, the same way the learning language already is.
+
+import type { CEFRLevel } from "@/data/types";
+import { authStore } from "@/lib/authStore";
+
+const DEFAULT_LEVEL: CEFRLevel = "A1";
+const VALID_LEVELS: CEFRLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
+
+function storageKey(): string {
+  const userId = authStore.getState().user?.id ?? "anon";
+  return `cefr-level:${userId}`;
+}
+
+function readInitialLevel(): CEFRLevel {
+  try {
+    const raw = localStorage.getItem(storageKey());
+    if (raw && (VALID_LEVELS as string[]).includes(raw)) return raw as CEFRLevel;
+  } catch {}
+  return DEFAULT_LEVEL;
+}
+
+let level: CEFRLevel = readInitialLevel();
+type Listener = (level: CEFRLevel) => void;
+const listeners = new Set<Listener>();
+
+function notify() {
+  for (const listener of listeners) listener(level);
+}
+
+export const cefrLevelStore = {
+  getState(): CEFRLevel {
+    return level;
+  },
+
+  setLevel(next: CEFRLevel) {
+    level = next;
+    try {
+      localStorage.setItem(storageKey(), next);
+    } catch {}
+    notify();
+  },
+
+  // Re-reads the stored level for whichever user is now logged in — call
+  // right after login/register/logout, mirroring languageStore.reload().
+  reload() {
+    level = readInitialLevel();
+    notify();
+  },
+
+  subscribe(listener: Listener): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  },
+};
+```
+
+- [ ] **Step 4: Create `src/lib/preferencesSync.ts`**
+
+```typescript
+// src/lib/preferencesSync.ts — best-effort backend sync for language/level
+// preferences. localStorage (languageStore/cefrLevelStore) remains the
+// source of truth for instant UI state; this is a fire-and-forget mirror
+// to the backend so preferences follow the user across devices.
+
+import { authStore } from "@/lib/authStore";
+import { updatePreferences } from "@/lib/api";
+import type { LanguageCode } from "@/data/languages";
+import type { CEFRLevel } from "@/data/types";
+
+export function syncPreferences(patch: { learningLanguage?: LanguageCode; cefrLevel?: CEFRLevel }): void {
+  const token = authStore.getState().token;
+  if (!token) return; // not logged in — localStorage-only, nothing to sync
+  updatePreferences(patch, token).catch(() => {}); // same swallow-errors pattern as progress.ts
+}
+```
+
+- [ ] **Step 5: Hydrate both stores from `preferences` on session validation, login, and register**
+
+In `src/contexts/AuthContext.tsx`, import the new pieces:
+```typescript
+import { languageStore } from "@/lib/languageStore";
+import { cefrLevelStore } from "@/lib/cefrLevelStore";
+```
+
+Add a small local helper (top of the file, outside the component) that applies a fetched `User`'s preferences to both stores without re-triggering a backend PATCH (hydration should never sync back to the server it just read from):
+```typescript
+function hydratePreferences(user: User) {
+  if (user.preferences?.learningLanguage) languageStore.setLanguage(user.preferences.learningLanguage);
+  if (user.preferences?.cefrLevel) cefrLevelStore.setLevel(user.preferences.cefrLevel);
+}
+```
+
+Update the initial token-validation effect (`src/contexts/AuthContext.tsx:26-37`) to hydrate from the response instead of discarding it:
+```typescript
+useEffect(() => {
+  const { token } = authStore.getState();
+  if (!token) {
+    setIsReady(true);
+    return;
+  }
+  fetchMe(token)
+    .then(hydratePreferences)
+    .catch((err) => {
+      if (err instanceof ApiError && err.status === 401) authStore.clearSession();
+    })
+    .finally(() => setIsReady(true));
+}, []);
+```
+
+Update `login`/`register` (Task 8, Step 3 already added `languageStore.reload()` here — this task adds a `fetchMe` call after that, since `loginUser`/`registerUser`'s own response only carries `{ id, email }`, not `preferences`):
+```typescript
+const login = useCallback(async (email: string, password: string) => {
+  const res = await loginUser(email, password);
+  authStore.setSession(res.user, res.token);
+  languageStore.reload();
+  cefrLevelStore.reload();
+  const me = await fetchMe(res.token).catch(() => null);
+  if (me) hydratePreferences(me);
+  await loadFromServer();
+}, []);
+
+const register = useCallback(async (email: string, password: string, inviteCode: string) => {
+  const res = await registerUser(email, password, inviteCode);
+  authStore.setSession(res.user, res.token);
+  languageStore.reload();
+  cefrLevelStore.reload();
+  const me = await fetchMe(res.token).catch(() => null);
+  if (me) hydratePreferences(me);
+  await loadFromServer();
+}, []);
+```
+
+Update `logout` (Task 8, Step 3) to also reload the level store:
+```typescript
+const logout = useCallback(() => {
+  authStore.clearSession();
+  languageStore.reload();
+  cefrLevelStore.reload();
+}, []);
+```
+
+- [ ] **Step 6: Sync on language change**
+
+In `src/contexts/LanguageContext.tsx` (Task 8, Step 2), wrap the exposed `setLanguage` so switching language also fires the backend sync, instead of exposing `languageStore.setLanguage` directly:
+```typescript
+import { syncPreferences } from "@/lib/preferencesSync";
+// ...
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState(languageStore.getState());
+
+  useEffect(() => languageStore.subscribe(setLanguageState), []);
+
+  const setLanguage = (lang: LanguageCode) => {
+    languageStore.setLanguage(lang); // updates localStorage cache + notifies UI immediately
+    syncPreferences({ learningLanguage: lang }); // best-effort backend mirror
+  };
+
+  return (
+    <LanguageContext.Provider value={{ language, config: LANGUAGES[language], setLanguage }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+}
+```
+
+- [ ] **Step 7: Sync on CEFR level change, and read the initial level from `cefrLevelStore`**
+
+In `src/pages/Dashboard.tsx`, replace:
+```typescript
+const [activeLevel, setActiveLevel] = useState<CEFRLevel>("A1");
+```
+with:
+```typescript
+const [activeLevel, setActiveLevelState] = useState<CEFRLevel>(() => cefrLevelStore.getState());
+
+const setActiveLevel = (level: CEFRLevel) => {
+  setActiveLevelState(level);
+  cefrLevelStore.setLevel(level); // localStorage cache
+  syncPreferences({ cefrLevel: level }); // best-effort backend mirror
+};
+```
+Add the imports:
+```typescript
+import { cefrLevelStore } from "@/lib/cefrLevelStore";
+import { syncPreferences } from "@/lib/preferencesSync";
+```
+No other call sites change — `setActiveLevel` is already threaded through `SidebarContent`'s props (Task 9) and every other reference in `Dashboard.tsx`, so this stays a drop-in replacement.
+
+- [ ] **Step 8: Type-check and manual test**
+
+Run: `npm run build`.
+
+Run: `npm run dev`, log in as a test user, switch to Español and set level to B1. Open DevTools → Network, filter on `/api/auth/preferences`, confirm a PATCH fired with `{"learningLanguage":"es"}` and another with `{"cefrLevel":"B1"}` (or combined, depending on click order), each returning `200` with the merged `preferences` object. Log out, log back in (or open the app in a different browser/incognito with the same credentials) and confirm the language selector shows Español and the level pill shows B1 immediately on load — i.e., cross-device/cross-session hydration works, not just localStorage. Then go fully offline (DevTools → Network → offline), change language/level again, and confirm the UI still updates instantly (localStorage cache) even though the PATCH silently fails.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add src/types/index.ts src/lib/api.ts src/lib/cefrLevelStore.ts src/lib/preferencesSync.ts src/contexts/AuthContext.tsx src/contexts/LanguageContext.tsx src/pages/Dashboard.tsx
+git commit -m "feat(prefs): sync learning language and CEFR level to backend preferences, hydrate on login"
+```
+
+---
