@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { CheckCircle, Circle, RotateCcw, BookOpen, Volume2, Loader2 } from "lucide-react";
-import { VOCABULARY, type CEFRLevel, type VocabWord } from "@/data/vocabulary";
+import { CONTENT, type CEFRLevel, type VocabWord } from "@/data";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { progress } from "@/lib/progress";
 import { lookupWord } from "@/lib/api";
 import { Separator } from "@/components/ui/separator";
@@ -226,14 +227,15 @@ interface VocabularyProps {
 }
 
 export default function Vocabulary({ level }: VocabularyProps) {
-  const words = VOCABULARY[level];
+  const { language } = useLanguage();
+  const words = CONTENT[language].vocabulary[level];
   const [learned, setLearned] = useState<string[]>([]);
   const [filter, setFilter]   = useState<"all" | "learned" | "new">("all");
 
   useEffect(() => {
     const data = progress.load();
     setLearned(data[level].vocabularyLearned);
-  }, [level]);
+  }, [level, language]);
 
   const toggle = (term: string) => {
     const isLearned = learned.includes(term);
@@ -308,7 +310,11 @@ export default function Vocabulary({ level }: VocabularyProps) {
       </div>
 
       {/* Word grid */}
-      {filtered.length === 0 ? (
+      {words.length === 0 ? (
+        <p className="text-sm font-mono text-zinc-400 py-8 text-center">
+          Content for this level is coming soon.
+        </p>
+      ) : filtered.length === 0 ? (
         <p className="text-sm font-mono text-zinc-400 py-8 text-center">No words in this filter.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

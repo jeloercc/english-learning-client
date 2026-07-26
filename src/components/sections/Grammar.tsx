@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { CheckCircle, Circle, ChevronDown, ChevronRight } from "lucide-react";
-import { GRAMMAR, type CEFRLevel } from "@/data/grammar";
+import { CONTENT, type CEFRLevel } from "@/data";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { progress } from "@/lib/progress";
 import { Separator } from "@/components/ui/separator";
 
@@ -104,13 +105,14 @@ interface GrammarProps {
 }
 
 export default function Grammar({ level }: GrammarProps) {
-  const rules = GRAMMAR[level];
+  const { language } = useLanguage();
+  const rules = CONTENT[language].grammar[level];
   const [completed, setCompleted] = useState<number[]>([]);
 
   useEffect(() => {
     const data = progress.load();
     setCompleted(data[level].grammarCompleted);
-  }, [level]);
+  }, [level, language]);
 
   const toggle = (index: number) => {
     progress.toggleGrammarCompleted(level, index);
@@ -119,7 +121,7 @@ export default function Grammar({ level }: GrammarProps) {
     );
   };
 
-  const pct = Math.round((completed.length / rules.length) * 100);
+  const pct = rules.length > 0 ? Math.round((completed.length / rules.length) * 100) : 0;
 
   return (
     <div className="space-y-5">
@@ -147,17 +149,23 @@ export default function Grammar({ level }: GrammarProps) {
         Click a rule to expand it. Check it off when you feel confident.
       </p>
 
-      <div className="space-y-2">
-        {rules.map((rule, i) => (
-          <RuleCard
-            key={i}
-            rule={rule}
-            index={i}
-            completed={completed.includes(i)}
-            onToggle={() => toggle(i)}
-          />
-        ))}
-      </div>
+      {rules.length === 0 ? (
+        <p className="text-sm font-mono text-zinc-400 py-8 text-center">
+          Content for this level is coming soon.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {rules.map((rule, i) => (
+            <RuleCard
+              key={i}
+              rule={rule}
+              index={i}
+              completed={completed.includes(i)}
+              onToggle={() => toggle(i)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

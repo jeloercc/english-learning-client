@@ -10,10 +10,9 @@
 import { useState, useEffect } from "react";
 import { BookOpen, Layers, Search, MessageSquare, ChevronRight, Headphones, PenLine, Menu, LogOut, User as UserIcon } from "lucide-react";
 import { Link } from "react-router-dom";
-import type { CEFRLevel } from "@/data/vocabulary";
-import { VOCABULARY } from "@/data/vocabulary";
-import { GRAMMAR } from "@/data/grammar";
-import { PHRASES } from "@/data/phrases";
+import type { CEFRLevel } from "@/data";
+import { CONTENT } from "@/data";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { progress, loadFromServer } from "@/lib/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import Vocabulary from "@/components/sections/Vocabulary";
@@ -59,6 +58,7 @@ interface LevelStatsBarProps {
 }
 
 function LevelStatsBar({ level }: LevelStatsBarProps) {
+  const { language } = useLanguage();
   const [stats, setStats] = useState({ vocab: 0, grammar: 0, phrases: 0 });
 
   useEffect(() => {
@@ -69,11 +69,12 @@ function LevelStatsBar({ level }: LevelStatsBarProps) {
       grammar: lp.grammarCompleted.length,
       phrases: lp.phrasesLearned.length,
     });
-  }, [level]);
+  }, [level, language]);
 
-  const totalVocab   = VOCABULARY[level].length;
-  const totalGrammar = GRAMMAR[level].length;
-  const totalPhrases = PHRASES[level].flatMap((t) => t.phrases).length;
+  const content = CONTENT[language];
+  const totalVocab   = content.vocabulary[level].length;
+  const totalGrammar = content.grammar[level].length;
+  const totalPhrases = content.phrases[level].flatMap((t) => t.phrases).length;
 
   const items = [
     { label: "Vocab",   done: stats.vocab,   total: totalVocab,   color: "bg-green-500" },

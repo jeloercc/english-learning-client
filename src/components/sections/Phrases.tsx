@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { CheckCircle, Circle } from "lucide-react";
-import { PHRASES, type CEFRLevel, type Phrase } from "@/data/phrases";
+import { CONTENT, type CEFRLevel, type Phrase } from "@/data";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { progress } from "@/lib/progress";
 import { Separator } from "@/components/ui/separator";
 
@@ -62,15 +63,16 @@ interface PhrasesProps {
 }
 
 export default function Phrases({ level }: PhrasesProps) {
-  const topics = PHRASES[level];
+  const { language } = useLanguage();
+  const topics = CONTENT[language].phrases[level];
   const [learnedPhrases, setLearnedPhrases] = useState<string[]>([]);
   const [activeTopic, setActiveTopic] = useState<string>(topics[0]?.topic ?? "");
 
   useEffect(() => {
     const data = progress.load();
     setLearnedPhrases(data[level].phrasesLearned);
-    setActiveTopic(PHRASES[level][0]?.topic ?? "");
-  }, [level]);
+    setActiveTopic(CONTENT[language].phrases[level][0]?.topic ?? "");
+  }, [level, language]);
 
   const toggle = (phrase: string) => {
     progress.togglePhraseLearned(level, phrase);
@@ -81,7 +83,7 @@ export default function Phrases({ level }: PhrasesProps) {
 
   const allPhrases = topics.flatMap((t) => t.phrases);
   const learnedCount = allPhrases.filter((p) => learnedPhrases.includes(p.phrase)).length;
-  const pct = Math.round((learnedCount / allPhrases.length) * 100);
+  const pct = allPhrases.length > 0 ? Math.round((learnedCount / allPhrases.length) * 100) : 0;
 
   const currentTopic = topics.find((t) => t.topic === activeTopic);
 
@@ -107,58 +109,66 @@ export default function Phrases({ level }: PhrasesProps) {
 
       <Separator />
 
-      {/* Topic tabs */}
-      <div className="flex flex-wrap gap-1.5">
-        {topics.map((t) => {
-          const tLearned = t.phrases.filter((p) => learnedPhrases.includes(p.phrase)).length;
-          const isActive = activeTopic === t.topic;
-          return (
-            <button
-              key={t.topic}
-              onClick={() => setActiveTopic(t.topic)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border transition-colors ${
-                isActive
-                  ? "bg-zinc-900 text-white border-zinc-900"
-                  : "bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400"
-              }`}
-            >
-              <span>{t.icon}</span>
-              <span>{t.topic}</span>
-              {tLearned > 0 && (
-                <span
-                  className={`text-xs ${isActive ? "text-green-400" : "text-green-500"}`}
+      {topics.length === 0 ? (
+        <p className="text-sm font-mono text-zinc-400 py-8 text-center">
+          Content for this level is coming soon.
+        </p>
+      ) : (
+        <>
+          {/* Topic tabs */}
+          <div className="flex flex-wrap gap-1.5">
+            {topics.map((t) => {
+              const tLearned = t.phrases.filter((p) => learnedPhrases.includes(p.phrase)).length;
+              const isActive = activeTopic === t.topic;
+              return (
+                <button
+                  key={t.topic}
+                  onClick={() => setActiveTopic(t.topic)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border transition-colors ${
+                    isActive
+                      ? "bg-zinc-900 text-white border-zinc-900"
+                      : "bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400"
+                  }`}
                 >
-                  ✓{tLearned}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+                  <span>{t.icon}</span>
+                  <span>{t.topic}</span>
+                  {tLearned > 0 && (
+                    <span
+                      className={`text-xs ${isActive ? "text-green-400" : "text-green-500"}`}
+                    >
+                      ✓{tLearned}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-      {/* Phrase list */}
-      {currentTopic && (
-        <div className="bg-white border border-zinc-200">
-          <div className="px-4 py-2 border-b border-zinc-100 flex items-center gap-2">
-            <span className="text-base">{currentTopic.icon}</span>
-            <span className="font-mono text-sm font-semibold text-zinc-700">
-              {currentTopic.topic}
-            </span>
-            <span className="font-mono text-xs text-zinc-400 ml-auto">
-              {currentTopic.phrases.length} phrases
-            </span>
-          </div>
-          <div className="px-4 divide-y divide-zinc-50">
-            {currentTopic.phrases.map((phrase) => (
-              <PhraseRow
-                key={phrase.phrase}
-                phrase={phrase}
-                learned={learnedPhrases.includes(phrase.phrase)}
-                onToggle={() => toggle(phrase.phrase)}
-              />
-            ))}
-          </div>
-        </div>
+          {/* Phrase list */}
+          {currentTopic && (
+            <div className="bg-white border border-zinc-200">
+              <div className="px-4 py-2 border-b border-zinc-100 flex items-center gap-2">
+                <span className="text-base">{currentTopic.icon}</span>
+                <span className="font-mono text-sm font-semibold text-zinc-700">
+                  {currentTopic.topic}
+                </span>
+                <span className="font-mono text-xs text-zinc-400 ml-auto">
+                  {currentTopic.phrases.length} phrases
+                </span>
+              </div>
+              <div className="px-4 divide-y divide-zinc-50">
+                {currentTopic.phrases.map((phrase) => (
+                  <PhraseRow
+                    key={phrase.phrase}
+                    phrase={phrase}
+                    learned={learnedPhrases.includes(phrase.phrase)}
+                    onToggle={() => toggle(phrase.phrase)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

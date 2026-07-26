@@ -1,4 +1,4 @@
-import type { CEFRLevel } from "@/data/vocabulary";
+import type { CEFRLevel } from "@/data";
 import { authStore } from "@/lib/authStore";
 import { progressRequest, ApiError } from "@/lib/api";
 
