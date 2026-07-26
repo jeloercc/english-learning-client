@@ -158,15 +158,15 @@ export default function LandingPage() {
           {/* Left — copy */}
           <div>
             <p className="font-mono text-xs text-zinc-400 uppercase tracking-widest mb-4">
-              Free English Tools · A1 to C2
+              Free English & Spanish Tools · A1 to C2
             </p>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-900 leading-[1.1] tracking-tight">
-              Learn English at your own pace.
-              <span className="text-zinc-400"> Every level, every tool, no paywall.</span>
+              Learn English and Spanish at your own pace.
+              <span className="text-zinc-400"> Aprende inglés y español — todos los niveles (A1-C2), sin costo.</span>
             </h1>
             <p className="text-sm sm:text-base text-zinc-500 leading-relaxed max-w-lg mt-5 sm:mt-6">
               480+ vocabulary cards, grammar guides, pronunciation drills, a live dictionary,
-              writing checker, and essential phrases — structured by CEFR levels from beginner to mastery.
+              writing checker, and essential phrases — structured by CEFR levels from beginner to mastery, for both languages.
             </p>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-6 sm:mt-8">
               <Link
@@ -340,10 +340,10 @@ export default function LandingPage() {
             {/* Brand */}
             <div className="md:col-span-2">
               <span className="font-mono text-xs font-bold tracking-widest uppercase text-zinc-900">
-                English
+                English + Español
               </span>
               <p className="font-mono text-xs text-zinc-400 mt-2 max-w-xs leading-relaxed">
-                A free English learning platform structured by CEFR levels.
+                A free English and Spanish learning platform structured by CEFR levels.
                 Built for self-learners who want real tools, not gamification.
               </p>
             </div>
@@ -373,7 +373,7 @@ export default function LandingPage() {
           </div>
           <div className="border-t border-zinc-200 mt-8 pt-6">
             <p className="font-mono text-xs text-zinc-400">
-              &copy; 2026 English Learning. All rights reserved.
+              &copy; 2026 English & Spanish Learning. All rights reserved.
             </p>
           </div>
         </div>

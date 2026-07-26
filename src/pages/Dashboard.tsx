@@ -1,7 +1,7 @@
 /**
- * Dashboard.tsx — English Learning Dashboard
+ * Dashboard.tsx — English & Spanish Learning Dashboard
  *
- * Personal English learning app structured by CEFR levels (A1 → C2).
+ * Personal English & Spanish learning app structured by CEFR levels (A1 → C2).
  * Sections: Vocabulary · Grammar · Dictionary · Phrases · Pronunciation · Writing
  *
  * Design: Minimal editorial — monospace accents, flat/sharp, warm off-white.
@@ -241,7 +241,7 @@ export default function Dashboard() {
             <Menu size={20} />
           </button>
           <Link to="/" className="font-mono text-xs font-bold tracking-widest uppercase text-zinc-900 hover:text-zinc-600 transition-colors">
-            English
+            English + Español
           </Link>
           <span className="text-zinc-300 hidden sm:inline">·</span>
           <span className="font-mono text-xs text-zinc-400 hidden sm:inline">Personal Learning Dashboard</span>

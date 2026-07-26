@@ -1,6 +1,8 @@
 # english-learning-client
 
-Personal English learning dashboard structured around CEFR levels (A1 → C2).
+Personal English & Spanish learning dashboard structured around CEFR levels (A1 → C2).
+
+Aprende inglés y español — todos los niveles (A1-C2).
 
 Built with React + TypeScript. Requires [english-learning-app](https://github.com/YOUR_USERNAME/english-learning-app) running as the backend proxy.
 
