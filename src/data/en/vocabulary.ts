@@ -1,16 +1,5 @@
-// vocabulary.ts — CEFR word lists A1 → C2  (80 words per level)
-// Each word: term · phonetic (IPA) · partOfSpeech · definition · example · topic
-
-export type CEFRLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
-
-export interface VocabWord {
-  term: string;
-  phonetic: string;
-  partOfSpeech: string;
-  definition: string;
-  example: string;
-  topic: string;
-}
+import type { CEFRLevel, VocabWord } from "@/data/types";
+export type { CEFRLevel, VocabWord };
 
 export const VOCABULARY: Record<CEFRLevel, VocabWord[]> = {
   // ─── A1 · Beginner ──────────────────────────────────────────────────────────

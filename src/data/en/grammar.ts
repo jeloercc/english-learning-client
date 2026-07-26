@@ -1,12 +1,5 @@
-export type CEFRLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
-
-export interface GrammarRule {
-  title: string;
-  explanation: string;
-  structure: string;
-  examples: string[];
-  notes?: string;
-}
+import type { CEFRLevel, GrammarRule } from "@/data/types";
+export type { CEFRLevel, GrammarRule };
 
 export const GRAMMAR: Record<CEFRLevel, GrammarRule[]> = {
   // ─── A1 · Beginner ──────────────────────────────────────────────────────────

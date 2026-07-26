@@ -1,17 +1,5 @@
-export type CEFRLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
-
-export interface Phrase {
-  phrase: string;
-  translation: string;
-  context: string;
-  example?: string;
-}
-
-export interface PhraseTopic {
-  topic: string;
-  icon: string;
-  phrases: Phrase[];
-}
+import type { CEFRLevel, Phrase, PhraseTopic } from "@/data/types";
+export type { CEFRLevel, Phrase, PhraseTopic };
 
 export const PHRASES: Record<CEFRLevel, PhraseTopic[]> = {
   // ─── A1 · Beginner ──────────────────────────────────────────────────────────
