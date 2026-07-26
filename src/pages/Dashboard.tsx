@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 import { BookOpen, Layers, Search, MessageSquare, ChevronRight, Headphones, PenLine, Menu, LogOut, User as UserIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { CEFRLevel } from "@/data";
-import { CONTENT } from "@/data";
+import { CONTENT, LANGUAGES } from "@/data";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { progress, loadFromServer } from "@/lib/progress";
 import { useAuth } from "@/contexts/AuthContext";
@@ -114,8 +114,32 @@ interface SidebarContentProps {
 }
 
 function SidebarContent({ activeLevel, setActiveLevel, activeSection, setActiveSection, currentLevel, onNavigate }: SidebarContentProps) {
+  const { language, setLanguage } = useLanguage();
+
   return (
     <>
+      {/* Learning language selector */}
+      <div className="p-4 border-b border-zinc-200">
+        <p className="font-mono text-xs text-zinc-400 uppercase tracking-widest mb-3">
+          Learning Language
+        </p>
+        <div className="grid grid-cols-2 gap-1">
+          {Object.values(LANGUAGES).map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => setLanguage(lang.code)}
+              className={`flex items-center justify-center gap-1.5 py-1.5 font-mono text-xs font-bold border transition-all ${
+                language === lang.code
+                  ? "bg-zinc-900 text-white border-transparent"
+                  : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300"
+              }`}
+            >
+              <span>{lang.flag}</span> {lang.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* CEFR Level selector */}
       <div className="p-4 border-b border-zinc-200">
         <p className="font-mono text-xs text-zinc-400 uppercase tracking-widest mb-3">
