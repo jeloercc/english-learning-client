@@ -21,7 +21,10 @@ import type {
   User,
   AuthResponse,
   ApiErrorBody,
+  UserPreferences,
 } from "@/types";
+import type { LanguageCode } from "@/data/languages";
+import type { CEFRLevel } from "@/data/types";
 import { authStore } from "@/lib/authStore";
 
 export const PROXY_BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:3001") + "/api";
@@ -252,6 +255,16 @@ export const loginUser = (email: string, password: string): Promise<AuthResponse
 
 export const fetchMe = (token: string): Promise<User> =>
   jsonRequest<User>("/auth/me", { method: "GET" }, token);
+
+export const updatePreferences = (
+  patch: Partial<{ learningLanguage: LanguageCode; cefrLevel: CEFRLevel }>,
+  token: string
+): Promise<{ preferences: UserPreferences }> =>
+  jsonRequest<{ preferences: UserPreferences }>(
+    "/auth/preferences",
+    { method: "PATCH", body: JSON.stringify(patch) },
+    token
+  );
 
 // ─── Progress API (authenticated) ──────────────────────────────────────────────
 //

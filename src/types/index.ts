@@ -1,8 +1,17 @@
 // ─── Auth ──────────────────────────────────────────────────────────────────
 
+import type { LanguageCode } from "@/data/languages";
+import type { CEFRLevel } from "@/data/types";
+
+export interface UserPreferences {
+  learningLanguage?: LanguageCode;
+  cefrLevel?: CEFRLevel;
+}
+
 export interface User {
   id: string;
   email: string;
+  preferences?: UserPreferences;
 }
 
 export interface AuthResponse {

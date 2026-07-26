@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { languageStore } from "@/lib/languageStore";
+import { syncPreferences } from "@/lib/preferencesSync";
 import { LANGUAGES, type LanguageCode, type LanguageConfig } from "@/data/languages";
 
 interface LanguageContextValue {
@@ -15,10 +16,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => languageStore.subscribe(setLanguageState), []);
 
+  const setLanguage = (lang: LanguageCode) => {
+    languageStore.setLanguage(lang); // updates localStorage cache + notifies UI immediately
+    syncPreferences({ learningLanguage: lang }); // best-effort backend mirror
+  };
+
   return (
-    <LanguageContext.Provider
-      value={{ language, config: LANGUAGES[language], setLanguage: languageStore.setLanguage }}
-    >
+    <LanguageContext.Provider value={{ language, config: LANGUAGES[language], setLanguage }}>
       {children}
     </LanguageContext.Provider>
   );

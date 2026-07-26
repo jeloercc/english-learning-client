@@ -15,6 +15,8 @@ import { CONTENT, LANGUAGES } from "@/data";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { progress, loadFromServer } from "@/lib/progress";
 import { useAuth } from "@/contexts/AuthContext";
+import { cefrLevelStore } from "@/lib/cefrLevelStore";
+import { syncPreferences } from "@/lib/preferencesSync";
 import Vocabulary from "@/components/sections/Vocabulary";
 import Grammar from "@/components/sections/Grammar";
 import DictionarySearch from "@/components/sections/DictionarySearch";
@@ -208,7 +210,20 @@ function SidebarContent({ activeLevel, setActiveLevel, activeSection, setActiveS
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const { language } = useLanguage();
-  const [activeLevel, setActiveLevel] = useState<CEFRLevel>("A1");
+  const [activeLevel, setActiveLevelState] = useState<CEFRLevel>(() => cefrLevelStore.getState());
+
+  // Mirrors LanguageContext's subscription to languageStore: without this,
+  // preferences hydrated from the server *after* this component has already
+  // mounted (e.g. the fetchMe call inside login()/register(), which resolves
+  // after the synchronous authStore.setSession() that mounts Dashboard) would
+  // update cefrLevelStore but never reach this component's local state.
+  useEffect(() => cefrLevelStore.subscribe(setActiveLevelState), []);
+
+  const setActiveLevel = (level: CEFRLevel) => {
+    cefrLevelStore.setLevel(level); // localStorage cache + notifies the subscription above
+    syncPreferences({ cefrLevel: level }); // best-effort backend mirror
+  };
+
   const [activeSection, setActiveSection] = useState<Section>("vocabulary");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 

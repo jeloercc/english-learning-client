@@ -2,8 +2,17 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import type { User } from "@/types";
 import { authStore } from "@/lib/authStore";
 import { languageStore } from "@/lib/languageStore";
+import { cefrLevelStore } from "@/lib/cefrLevelStore";
 import { ApiError, fetchMe, loginUser, registerUser } from "@/lib/api";
 import { loadFromServer } from "@/lib/progress";
+
+// Applies a fetched User's server-side preferences to the local stores
+// without triggering a backend PATCH — hydration reads, it never writes
+// back to the server it just read from.
+function hydratePreferences(user: User) {
+  if (user.preferences?.learningLanguage) languageStore.setLanguage(user.preferences.learningLanguage);
+  if (user.preferences?.cefrLevel) cefrLevelStore.setLevel(user.preferences.cefrLevel);
+}
 
 interface AuthContextValue {
   user: User | null;
@@ -31,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     fetchMe(token)
+      .then(hydratePreferences)
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) authStore.clearSession();
       })
@@ -41,6 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await loginUser(email, password);
     authStore.setSession(res.user, res.token);
     languageStore.reload();
+    cefrLevelStore.reload();
+    const me = await fetchMe(res.token).catch(() => null);
+    if (me) hydratePreferences(me);
     await loadFromServer();
   }, []);
 
@@ -48,12 +61,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await registerUser(email, password, inviteCode);
     authStore.setSession(res.user, res.token);
     languageStore.reload();
+    cefrLevelStore.reload();
+    const me = await fetchMe(res.token).catch(() => null);
+    if (me) hydratePreferences(me);
     await loadFromServer();
   }, []);
 
   const logout = useCallback(() => {
     authStore.clearSession();
     languageStore.reload();
+    cefrLevelStore.reload();
   }, []);
 
   return (
