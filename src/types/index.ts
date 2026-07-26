@@ -1,3 +1,21 @@
+// ─── Auth ──────────────────────────────────────────────────────────────────
+
+export interface User {
+  id: string;
+  email: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+export interface ApiErrorBody {
+  error?: string;
+  message?: string;
+  code?: string;
+}
+
 // ─── Unified Dictionary (MW Learners + Free Dictionary fallback) ──────────────
 
 export interface UnifiedDefinition {
