@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Search, Volume2, BookOpen, ChevronRight, Clock, X, Lightbulb, Music2, Sparkles, Layers } from "lucide-react";
-import type { DictionaryEntry } from "@/types";
+import type { DictionaryEntry, SpanishDictionaryEntry, SpanishDictionaryResponse } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -10,6 +10,7 @@ import {
   getAutocomplete,
   PROXY_BASE,
 } from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const POS_COLORS: Record<string, string> = {
   noun:         "bg-blue-50 text-blue-700 border-blue-200",
@@ -198,6 +199,69 @@ function AutocompleteInput({
   );
 }
 
+function SpanishResult({ entry, onPlayAudio }: { entry: SpanishDictionaryEntry; onPlayAudio: (url: string) => void }) {
+  return (
+    <article className="space-y-5">
+      <header className="space-y-2">
+        <div className="flex items-end justify-between">
+          <h2 className="text-4xl font-mono font-bold text-zinc-900 tracking-tight">{entry.word}</h2>
+          <span className="font-mono text-xs text-zinc-400">MW Spanish</span>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {entry.gender && (
+            <span className="px-2 py-0.5 text-xs font-mono font-semibold border bg-pink-50 text-pink-700 border-pink-200">
+              {entry.gender === "masculine" ? "masculino (m)" : "femenino (f)"}
+            </span>
+          )}
+          {entry.partOfSpeech && (
+            <span className="px-2 py-0.5 text-xs font-mono font-semibold border bg-zinc-50 text-zinc-700 border-zinc-200">
+              {entry.partOfSpeech}
+            </span>
+          )}
+          {entry.audioUrl && (
+            <button
+              onClick={() => onPlayAudio(entry.audioUrl!)}
+              className="flex items-center gap-1 px-2 py-0.5 border border-zinc-200 text-zinc-500 hover:text-zinc-900 hover:border-zinc-400 transition-colors text-xs font-mono"
+            >
+              <Volume2 size={13} /> Listen
+            </button>
+          )}
+        </div>
+      </header>
+
+      <Separator />
+
+      <div className="space-y-3">
+        <p className="text-xs font-mono text-zinc-400 uppercase tracking-wide">
+          Translations <span className="text-zinc-300">({entry.translations.length})</span>
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {entry.translations.map((t) => (
+            <span key={t} className="px-2 py-0.5 text-xs font-mono bg-white border border-zinc-200 text-zinc-700">{t}</span>
+          ))}
+        </div>
+      </div>
+
+      {entry.examples.length > 0 && (
+        <>
+          <Separator />
+          <div className="space-y-3">
+            <p className="text-xs font-mono text-zinc-400 uppercase tracking-wide">Examples</p>
+            <ul className="space-y-2">
+              {entry.examples.map((ex, i) => (
+                <li key={i} className="pl-3 border-l-2 border-zinc-100 space-y-0.5">
+                  <p className="text-sm text-zinc-800">{ex.es}</p>
+                  <p className="text-xs text-zinc-400 italic">{ex.en}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
+    </article>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface WordExtraData {
@@ -207,8 +271,10 @@ interface WordExtraData {
 }
 
 export default function DictionarySearch() {
+  const { language, config } = useLanguage();
   const [query, setQuery]     = useState("");
   const [entry, setEntry]     = useState<DictionaryEntry | null>(null);
+  const [spanishEntry, setSpanishEntry] = useState<SpanishDictionaryEntry | null>(null);
   const [source, setSource]   = useState<string | null>(null);
   const [cached, setCached]   = useState(false);
   const [loading, setLoading] = useState(false);
@@ -226,13 +292,14 @@ export default function DictionarySearch() {
     setLoading(true);
     setError(null);
     setEntry(null);
+    setSpanishEntry(null);
     setExtra(null);
 
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
       const resp = await fetch(
-        `${PROXY_BASE}/dictionary/${encodeURIComponent(trimmed.toLowerCase())}`,
+        `${PROXY_BASE}${config.dictionaryPath(trimmed)}`,
         { signal: controller.signal, headers: { Accept: "application/json" } }
       );
       clearTimeout(timeout);
@@ -241,27 +308,38 @@ export default function DictionarySearch() {
       if (!json.success || !json.data) {
         setError(json.error?.message ?? "Word not found.");
       } else {
-        setEntry(json.data);
         setSource(json.source);
         setCached(json.cached);
         setHistory((prev) => [trimmed, ...prev.filter((w) => w !== trimmed)].slice(0, 10));
 
-        // Fetch Datamuse extras in background
-        setExtraLoading(true);
-        const [rhymes, similar, adjectives] = await Promise.all([
-          getWordRhymes(trimmed),
-          getWordSimilar(trimmed),
-          getWordAdjectives(trimmed),
-        ]);
-        setExtra({ rhymes, similar, adjectives });
-        setExtraLoading(false);
+        if (language === "es") {
+          setEntry(null);
+          setSpanishEntry((json as SpanishDictionaryResponse).data);
+        } else {
+          setSpanishEntry(null);
+          setEntry(json.data);
+        }
+
+        if (config.hasRhymes) {
+          // Fetch Datamuse extras in background
+          setExtraLoading(true);
+          const [rhymes, similar, adjectives] = await Promise.all([
+            getWordRhymes(trimmed),
+            getWordSimilar(trimmed),
+            getWordAdjectives(trimmed),
+          ]);
+          setExtra({ rhymes, similar, adjectives });
+          setExtraLoading(false);
+        } else {
+          setExtra(null);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Lookup failed.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [language, config]);
 
   const handleSubmit = () => searchWithMeta(query);
   const handleChipSearch = (word: string) => searchWithMeta(word);
@@ -346,7 +424,7 @@ export default function DictionarySearch() {
 
       {/* Right: Results */}
       <main className="flex-1 overflow-y-auto md:pr-2">
-        {!loading && !error && !entry && (
+        {!loading && !error && !entry && !spanishEntry && (
           <div className="flex flex-col items-center justify-center h-64 gap-3 text-zinc-300">
             <BookOpen size={40} strokeWidth={1} />
             <p className="text-sm font-mono">Search a word to begin</p>
@@ -361,7 +439,11 @@ export default function DictionarySearch() {
           </div>
         )}
 
-        {entry && !loading && (
+        {language === "es" && spanishEntry && !loading && (
+          <SpanishResult entry={spanishEntry} onPlayAudio={playAudio} />
+        )}
+
+        {language === "en" && entry && !loading && (
           <article className="space-y-5">
             {/* Word header */}
             <header className="space-y-2">

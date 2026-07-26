@@ -48,6 +48,30 @@ export interface DictionaryResponse {
   error: { code: string; message: string } | null;
 }
 
+// ─── Spanish-English Dictionary (Merriam-Webster Spanish API) ────────────────
+
+export interface SpanishExample {
+  en: string;
+  es: string;
+}
+
+export interface SpanishDictionaryEntry {
+  word: string;
+  translations: string[];
+  examples: SpanishExample[];
+  gender: "masculine" | "feminine" | null;
+  partOfSpeech: string | null;
+  audioUrl: string | null;
+}
+
+export interface SpanishDictionaryResponse {
+  success: boolean;
+  data: SpanishDictionaryEntry | null;
+  source: string | null;
+  cached: boolean;
+  error: { code: string; message: string } | null;
+}
+
 // ─── LanguageTool Grammar Check ───────────────────────────────────────────────
 
 export interface GrammarMatch {
