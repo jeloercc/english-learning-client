@@ -98,7 +98,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-zinc-300 bg-white/95 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <span className="font-mono text-xs font-bold tracking-widest uppercase text-zinc-900">
-            English
+            English + Español
           </span>
 
           {/* Desktop nav */}
@@ -188,7 +188,7 @@ export default function LandingPage() {
           <div className="border border-zinc-300 bg-white">
             {/* Mini header */}
             <div className="border-b border-zinc-200 px-5 py-3 flex items-center gap-2">
-              <span className="font-mono text-xs font-bold tracking-widest uppercase text-zinc-900">English</span>
+              <span className="font-mono text-xs font-bold tracking-widest uppercase text-zinc-900">English + Español</span>
               <span className="text-zinc-300">·</span>
               <span className="font-mono text-xs text-zinc-400">Dashboard Preview</span>
             </div>
@@ -239,7 +239,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
           <p className="font-mono text-xs text-zinc-400 uppercase tracking-widest mb-2">Tools</p>
           <h2 className="text-2xl lg:text-3xl font-bold text-zinc-900 mb-12">
-            Six tools to cover every angle of English.
+            Six tools to cover every angle of English and Spanish.
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-l border-zinc-300">
             {FEATURES.map((f) => (
