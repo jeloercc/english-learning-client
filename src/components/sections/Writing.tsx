@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { CheckCircle2, AlertCircle, RotateCcw, ChevronDown } from "lucide-react";
 import { checkGrammar } from "@/lib/api";
 import type { GrammarMatch } from "@/types";
 import { Separator } from "@/components/ui/separator";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ─── Error category helpers ───────────────────────────────────────────────────
 
@@ -202,19 +203,44 @@ const LANG_OPTIONS = [
 
 const WORD_LIMIT = 500;
 
+const PLACEHOLDERS: Record<string, string> = {
+  en: `Write anything in English…\n\nFor example:\n  "Yesterday I go to the market and buyed many thing."\n  "She have a very nice house in the mountains."`,
+  es: `Escribe cualquier cosa en español…\n\nPor ejemplo:\n  "Ayer yo voy al mercado y comprí muchas cosa."\n  "Ella tiene una casa muy bonito en las montañas."`,
+};
+
+const TIPS: Record<string, string[]> = {
+  en: [
+    "Write a few sentences about your day",
+    "Describe a place you visited",
+    "Tell a short story about an experience",
+    "Write your opinion on a topic",
+  ],
+  es: [
+    "Escribe algunas frases sobre tu día",
+    "Describe un lugar que visitaste",
+    "Cuenta una historia corta sobre una experiencia",
+    "Escribe tu opinión sobre un tema",
+  ],
+};
+
 export default function Writing() {
+  const { language, config }      = useLanguage();
   const [text, setText]           = useState("");
   const [mode, setMode]           = useState<"editing" | "results">("editing");
   const [matches, setMatches]     = useState<GrammarMatch[]>([]);
   const [activeMatch, setActive]  = useState<number | null>(null);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState<string | null>(null);
-  const [language, setLanguage]   = useState("en-US");
+  const [checkLocale, setCheckLocale] = useState(config.grammarCheckLocale);
   const [showLang, setShowLang]   = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
   const charCount = text.length;
+
+  useEffect(() => {
+    setCheckLocale(config.grammarCheckLocale);
+  }, [config.grammarCheckLocale]);
 
   const handleCheck = useCallback(async () => {
     if (!text.trim()) return;
@@ -223,7 +249,7 @@ export default function Writing() {
     setActive(null);
 
     try {
-      const result = await checkGrammar(text, language);
+      const result = await checkGrammar(text, checkLocale);
       setMatches(result);
       setMode("results");
     } catch (e) {
@@ -231,7 +257,7 @@ export default function Writing() {
     } finally {
       setLoading(false);
     }
-  }, [text, language]);
+  }, [text, checkLocale]);
 
   const handleApply = (matchIndex: number, replacement: string) => {
     // Apply the fix: find the match's position in the original text
@@ -263,28 +289,34 @@ export default function Writing() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3">
           {/* Language selector */}
-          <div className="relative">
-            <button
-              onClick={() => setShowLang((s) => !s)}
-              className="flex items-center gap-1.5 border border-zinc-200 bg-white px-3 py-1.5 text-xs font-mono text-zinc-600 hover:border-zinc-400 transition-colors"
-            >
-              {LANG_OPTIONS.find((l) => l.code === language)?.label ?? language}
-              <ChevronDown size={11} />
-            </button>
-            {showLang && (
-              <div className="absolute top-full mt-0.5 left-0 z-20 bg-white border border-zinc-200 shadow-sm min-w-36">
-                {LANG_OPTIONS.map((l) => (
-                  <button
-                    key={l.code}
-                    onClick={() => { setLanguage(l.code); setShowLang(false); }}
-                    className={`block w-full text-left px-3 py-1.5 text-xs font-mono hover:bg-zinc-50 transition-colors ${language === l.code ? "text-zinc-900 font-semibold" : "text-zinc-600"}`}
-                  >
-                    {l.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {language === "en" ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowLang((s) => !s)}
+                className="flex items-center gap-1.5 border border-zinc-200 bg-white px-3 py-1.5 text-xs font-mono text-zinc-600 hover:border-zinc-400 transition-colors"
+              >
+                {LANG_OPTIONS.find((l) => l.code === checkLocale)?.label ?? checkLocale}
+                <ChevronDown size={11} />
+              </button>
+              {showLang && (
+                <div className="absolute top-full mt-0.5 left-0 z-20 bg-white border border-zinc-200 shadow-sm min-w-36">
+                  {LANG_OPTIONS.map((l) => (
+                    <button
+                      key={l.code}
+                      onClick={() => { setCheckLocale(l.code); setShowLang(false); }}
+                      className={`block w-full text-left px-3 py-1.5 text-xs font-mono hover:bg-zinc-50 transition-colors ${checkLocale === l.code ? "text-zinc-900 font-semibold" : "text-zinc-600"}`}
+                    >
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <span className="flex items-center gap-1.5 border border-zinc-200 bg-white px-3 py-1.5 text-xs font-mono text-zinc-600">
+              Español
+            </span>
+          )}
 
           {/* Word / char count */}
           <span className="font-mono text-xs text-zinc-400">
@@ -327,7 +359,7 @@ export default function Writing() {
           ref={textareaRef}
           value={text}
           onChange={(e) => setText(e.target.value.slice(0, WORD_LIMIT))}
-          placeholder={`Write anything in English…\n\nFor example:\n  "Yesterday I go to the market and buyed many thing."\n  "She have a very nice house in the mountains."`}
+          placeholder={PLACEHOLDERS[language]}
           rows={12}
           className="w-full p-4 text-sm font-mono leading-relaxed bg-white border border-zinc-200
                      focus:outline-none focus:border-zinc-500 placeholder:text-zinc-300 resize-y"
@@ -364,12 +396,7 @@ export default function Writing() {
         <div className="space-y-1.5 pt-2">
           <p className="text-xs font-mono text-zinc-400 uppercase tracking-wide">Tips</p>
           <ul className="space-y-1">
-            {[
-              "Write a few sentences about your day",
-              "Describe a place you visited",
-              "Tell a short story about an experience",
-              "Write your opinion on a topic",
-            ].map((tip, i) => (
+            {TIPS[language].map((tip, i) => (
               <li key={i}
                 onClick={() => { setText(tip + " "); textareaRef.current?.focus(); }}
                 className="text-xs font-mono text-zinc-400 hover:text-zinc-700 cursor-pointer flex items-center gap-1.5 transition-colors">
