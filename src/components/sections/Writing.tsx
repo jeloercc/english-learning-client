@@ -242,6 +242,17 @@ export default function Writing() {
     setCheckLocale(config.grammarCheckLocale);
   }, [config.grammarCheckLocale]);
 
+  // Clear stale grammar-check results when the language changes so a
+  // leftover result from the previous language isn't shown under a locale
+  // badge that no longer matches what produced it. Mirrors
+  // DictionarySearch.tsx's equivalent effect for its search results.
+  useEffect(() => {
+    setMode("editing");
+    setMatches([]);
+    setActive(null);
+    setError(null);
+  }, [language]);
+
   const handleCheck = useCallback(async () => {
     if (!text.trim()) return;
     setLoading(true);

@@ -20,9 +20,30 @@ function storageKey(): string {
   return `progress:${userId}:${language}`;
 }
 
+// One-time migration: before language support existed, progress was stored
+// under the un-namespaced `progress:<userId>` key. If that legacy key is
+// still around and the new `progress:<userId>:en` key hasn't been written
+// yet, copy the legacy data over so it isn't silently orphaned (this matters
+// most for wordsSearched, which is local-only and never synced from the
+// backend — vocab/grammar/phrases would at least be re-fetched via
+// loadFromServer()). English is the only language the legacy format could
+// have held. The legacy key is left in place — cheap to keep, safer than
+// risking data loss by deleting it if this logic ever misfires.
+function migrateLegacyProgress(userId: string): void {
+  try {
+    const newKey = `progress:${userId}:en`;
+    if (localStorage.getItem(newKey) !== null) return; // already migrated or already has fresh data
+    const oldKey = `progress:${userId}`;
+    const legacyRaw = localStorage.getItem(oldKey);
+    if (!legacyRaw) return;
+    localStorage.setItem(newKey, legacyRaw);
+  } catch {}
+}
+
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 
 function load(): Record<CEFRLevel, LevelProgress> {
+  migrateLegacyProgress(authStore.getState().user?.id ?? "anon");
   try {
     const raw = localStorage.getItem(storageKey());
     if (raw) return JSON.parse(raw);
@@ -75,6 +96,16 @@ async function syncPhrase(method: "POST" | "DELETE", level: CEFRLevel, phrase: s
 export async function loadFromServer(): Promise<void> {
   if (!authStore.getState().token) return;
 
+  // Capture the active language *before* the request goes out. Both the
+  // request URL and (further down) the localStorage write key are derived
+  // from languageStore.getState() — if we re-read it after the await instead
+  // of using this captured value, a language switch that happens while this
+  // request is in flight (e.g. Dashboard's effect firing loadFromServer()
+  // again after login hydrates a different stored language) would cause this
+  // response to be written under the NEW language's storage bucket even
+  // though the data came back for the OLD language.
+  const requestLanguage = languageStore.getState();
+
   try {
     const json = await progressRequest<{
       success: boolean;
@@ -83,12 +114,17 @@ export async function loadFromServer(): Promise<void> {
         grammar: Partial<Record<CEFRLevel, number[]>>;
         phrases: Partial<Record<CEFRLevel, string[]>>;
       };
-    }>(`?language=${languageStore.getState()}`);
+    }>(`?language=${requestLanguage}`);
 
     if (!json.success || !json.data) {
       console.warn("[progress] Server sync failed: unexpected response shape");
       return;
     }
+
+    // The active language may have changed while the request was in flight.
+    // Discard a now-stale response instead of writing it into the current
+    // (different) language's storage bucket.
+    if (languageStore.getState() !== requestLanguage) return;
 
     const { vocabulary, grammar, phrases } = json.data;
     const data = load();

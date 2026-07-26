@@ -49,9 +49,10 @@ interface WordCardProps {
   word: VocabWord;
   learned: boolean;
   onToggle: () => void;
+  hasAudioApi: boolean;
 }
 
-function WordCard({ word, learned, onToggle }: WordCardProps) {
+function WordCard({ word, learned, onToggle, hasAudioApi }: WordCardProps) {
   const [flipped, setFlipped]     = useState(false);
   const [liveData, setLiveData]   = useState<DictionaryEntry | null>(null);
   const [fetching, setFetching]   = useState(false);
@@ -60,7 +61,14 @@ function WordCard({ word, learned, onToggle }: WordCardProps) {
   const handleFlip = async () => {
     const next = !flipped;
     setFlipped(next);
-    if (next && !liveData && !fetching) {
+    // Live dictionary lookup only applies to languages backed by the
+    // English dictionary API (see LANGUAGES[lang].hasAudioApi). For
+    // languages without it (currently Spanish), the curated word.definition
+    // / word.example / word.partOfSpeech from the local content data is
+    // always used instead — fetching here would hit the English-only
+    // dictionary route and could override a correct Spanish gloss with an
+    // unrelated English definition for terms that collide with English words.
+    if (hasAudioApi && next && !liveData && !fetching) {
       setFetching(true);
       const entry = await fetchLiveEntry(word.term);
       setLiveData(entry);
@@ -93,8 +101,10 @@ function WordCard({ word, learned, onToggle }: WordCardProps) {
             <p className="font-mono text-xs text-zinc-400">{word.phonetic}</p>
           </div>
           <div className="flex items-center gap-1.5">
-            {/* Audio button — only when flipped and live data available */}
-            {flipped && liveData?.audioUrl && (
+            {/* Audio button — English only: live MW audio when flipped and available.
+                Spanish never renders this; Pronunciation.tsx's browser
+                SpeechSynthesis is the only audio path in Spanish mode. */}
+            {hasAudioApi && flipped && liveData?.audioUrl && (
               <button
                 onClick={playAudio}
                 className="p-1 text-zinc-400 hover:text-zinc-700 transition-colors"
@@ -227,7 +237,7 @@ interface VocabularyProps {
 }
 
 export default function Vocabulary({ level }: VocabularyProps) {
-  const { language } = useLanguage();
+  const { language, config } = useLanguage();
   const words = CONTENT[language].vocabulary[level];
   const [learned, setLearned] = useState<string[]>([]);
   const [filter, setFilter]   = useState<"all" | "learned" | "new">("all");
@@ -324,6 +334,7 @@ export default function Vocabulary({ level }: VocabularyProps) {
               word={word}
               learned={learned.includes(word.term)}
               onToggle={() => toggle(word.term)}
+              hasAudioApi={config.hasAudioApi}
             />
           ))}
         </div>
