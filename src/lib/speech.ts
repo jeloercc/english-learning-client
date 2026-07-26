@@ -27,8 +27,15 @@ function loadVoices(): Promise<SpeechSynthesisVoice[]> {
 
     const timeoutId = window.setTimeout(() => {
       synth.removeEventListener("voiceschanged", onVoicesChanged);
-      cachedVoices = synth.getVoices();
-      resolve(cachedVoices);
+      // Don't permanently cache an empty result — [] is truthy, so caching it
+      // here would make the `if (cachedVoices) ...` guard above treat "still
+      // loading" as "confirmed no voices" forever. Only cache non-empty
+      // results; otherwise clear voicesPromise so a later call re-attempts
+      // (covers slow-but-not-hung engines, e.g. some Android/ChromeOS TTS
+      // init that finishes just after our 1s timeout).
+      const late = synth.getVoices();
+      if (late.length > 0) cachedVoices = late; else voicesPromise = null;
+      resolve(late);
     }, 1000);
 
     function onVoicesChanged() {

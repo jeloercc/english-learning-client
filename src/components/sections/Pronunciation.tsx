@@ -41,7 +41,10 @@ function WordRow({ word, isPlaying, learned, onPlay, onToggleLearned, audioState
       {/* Play button */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <span tabIndex={audioAvailable === false ? 0 : undefined} className="shrink-0">
+          <span
+            tabIndex={audioAvailable === false ? 0 : undefined}
+            className={cn("shrink-0", audioAvailable === false && "cursor-not-allowed")}
+          >
             <button
               onClick={onPlay}
               disabled={disabled}
@@ -50,7 +53,7 @@ function WordRow({ word, isPlaying, learned, onPlay, onToggleLearned, audioState
                 isPlaying
                   ? "bg-amber-500 border-amber-500 text-white"
                   : "border-zinc-200 text-zinc-400 hover:border-zinc-400 hover:text-zinc-700",
-                audioAvailable === false && "opacity-40 cursor-not-allowed hover:border-zinc-200 hover:text-zinc-400"
+                audioAvailable === false && "opacity-40 pointer-events-none hover:border-zinc-200 hover:text-zinc-400"
               )}
               title={`Play pronunciation of "${word.term}"`}
             >
@@ -279,13 +282,16 @@ export default function Pronunciation({ level }: PronunciationProps) {
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span tabIndex={audioAvailable === false ? 0 : undefined}>
+                <span
+                  tabIndex={audioAvailable === false ? 0 : undefined}
+                  className={cn(audioAvailable === false && "cursor-not-allowed")}
+                >
                   <button
                     onClick={playAll}
                     disabled={isPlayingAll || audioAvailable === false}
                     className={cn(
                       "flex items-center gap-1.5 px-4 py-1.5 text-sm font-mono bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40 transition-colors",
-                      audioAvailable === false && "cursor-not-allowed"
+                      audioAvailable === false && "pointer-events-none"
                     )}
                   >
                     <Play size={12} fill="white" /> Play All
