@@ -1,12 +1,14 @@
 # Spanish Learning Language Support — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status: shipped.** All 16 tasks (Tasks 1-14 original plan + Tasks 15-16 addendum) executed via superpowers:subagent-driven-development on branch `feat/spanish-language-support`, `b7e5c55..b7810fb`. Every task passed an individual spec+quality review (several after one fix round); a live Playwright QA pass (Task 14) ran against real local dev servers, including a direct proof of cross-device preference hydration; a final whole-branch review found two Important cross-task integration gaps (English dictionary lookups leaking into Spanish word cards; a progress-sync race condition), both fixed and re-reviewed clean in commit `b7810fb`. Full detail: `.superpowers/sdd/2026-07-25-spanish-language-support/progress.md`. A short list of Minor polish items was consciously deferred to a follow-up commit — see that ledger's final entries.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add Spanish as a second learning language alongside English, selectable independently of the CEFR level, with per-language content, per-language progress tracking, and per-language feature behavior (dictionary source, audio, IPA, rhymes, grammar check).
 
 **Architecture:** Reorganize `src/data/` from flat per-content-type files into `data/{en,es}/{vocabulary,grammar,phrases}.ts` behind a `data/index.ts` registry keyed by language code. A new `LanguageContext` (backed by a plain `languageStore` module, mirroring the existing `authStore` pattern) holds the active learning language, persisted to `localStorage` per user. `progress.ts` and `api.ts` thread that language into every local storage key and every backend call — the backend (`english-learning-app`) already accepts and scopes by `language` (`en`/`es`, defaulting to `en`), so **no backend changes are needed**. Per-language feature differences (dictionary endpoint, IPA, rhymes, audio strategy, grammar-check locale) live in one `LanguageConfig` table in `data/languages.ts`, not scattered conditionals.
 
-**Tech Stack:** React 19 + TypeScript + Vite, React Router, Tailwind, existing `authStore`/`AuthContext` pattern for state, Express/Prisma/Turso backend (already multi-language-aware, verified — no changes needed there).
+**Tech Stack:** React 19 + TypeScript + Vite, React Router, Tailwind, existing `authStore`/`AuthContext` pattern for state, Express/libSQL(Turso) backend (already multi-language-aware, verified — no changes needed there). *(Corrected from an earlier draft that said "Prisma" — the backend uses raw SQL via `@libsql/client` against Turso, not Prisma; confirmed by reading `db/database.js` directly during Task 16.)*
 
 ## Global Constraints
 
@@ -30,7 +32,7 @@
 **Interfaces:**
 - Produces: `CEFRLevel`, `VocabWord`, `GrammarRule`, `Phrase`, `PhraseTopic` — used by every task after this one.
 
-- [ ] **Step 1: Create the shared types file**
+- [x] **Step 1: Create the shared types file**
 
 ```typescript
 // src/data/types.ts
@@ -68,12 +70,12 @@ export interface PhraseTopic {
 }
 ```
 
-- [ ] **Step 2: Type-check**
+- [x] **Step 2: Type-check**
 
 Run: `npm run build`
 Expected: succeeds (this file has no consumers yet, so nothing else changes).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/data/types.ts
@@ -93,7 +95,7 @@ git commit -m "feat(data): add shared content types for multi-language support"
 - Consumes: `CEFRLevel`, `VocabWord`, `GrammarRule`, `Phrase`, `PhraseTopic` from `@/data/types` (Task 1).
 - Produces: `VOCABULARY: Record<CEFRLevel, VocabWord[]>`, `GRAMMAR: Record<CEFRLevel, GrammarRule[]>`, `PHRASES: Record<CEFRLevel, PhraseTopic[]>` — same names/shapes as today, just re-exported from the shared types instead of locally declared.
 
-- [ ] **Step 1: Create `src/data/en/vocabulary.ts`**
+- [x] **Step 1: Create `src/data/en/vocabulary.ts`**
 
 Copy the full current contents of `src/data/vocabulary.ts` verbatim (all 6 levels, unchanged), but replace the top of the file:
 
@@ -107,7 +109,7 @@ export const VOCABULARY: Record<CEFRLevel, VocabWord[]> = {
 };
 ```
 
-- [ ] **Step 2: Create `src/data/en/grammar.ts`**
+- [x] **Step 2: Create `src/data/en/grammar.ts`**
 
 Same pattern — copy `src/data/grammar.ts`'s `GRAMMAR` object verbatim, replacing its local `type CEFRLevel = ...` declaration with an import from `@/data/types`:
 
@@ -121,7 +123,7 @@ export const GRAMMAR: Record<CEFRLevel, GrammarRule[]> = {
 };
 ```
 
-- [ ] **Step 3: Create `src/data/en/phrases.ts`**
+- [x] **Step 3: Create `src/data/en/phrases.ts`**
 
 Same pattern for `PHRASES`:
 
@@ -135,17 +137,17 @@ export const PHRASES: Record<CEFRLevel, PhraseTopic[]> = {
 };
 ```
 
-- [ ] **Step 4: Delete the old flat files**
+- [x] **Step 4: Delete the old flat files**
 
 ```bash
 rm src/data/vocabulary.ts src/data/grammar.ts src/data/phrases.ts
 ```
 
-- [ ] **Step 5: Diff-check content is untouched**
+- [x] **Step 5: Diff-check content is untouched**
 
 Run: `git diff --stat` — confirm the new `data/en/*.ts` files have the same word/rule/phrase counts as the deleted originals (e.g. `grep -c "term:" src/data/en/vocabulary.ts` should equal what the old file had — 860 lines total across 6 levels, A1=150, A2=150).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/data/en src/data/vocabulary.ts src/data/grammar.ts src/data/phrases.ts
@@ -166,7 +168,7 @@ git commit -m "refactor(data): move English content into data/en/, unchanged"
 
 This is the single place all per-language feature differences live — components branch on `config.hasIPA` / `config.hasRhymes` / `config.hasAudioApi`, never on `language === "es"` scattered through JSX (the one documented exception is DictionarySearch's result renderer, Task 12, where the backend response *shapes* are fundamentally different objects).
 
-- [ ] **Step 1: Create the file**
+- [x] **Step 1: Create the file**
 
 ```typescript
 // src/data/languages.ts
@@ -212,11 +214,11 @@ export const LANGUAGES: Record<LanguageCode, LanguageConfig> = {
 export const DEFAULT_LANGUAGE: LanguageCode = "en";
 ```
 
-- [ ] **Step 2: Type-check**
+- [x] **Step 2: Type-check**
 
 Run: `npm run build` — expected to fail only on the pre-existing broken imports from Task 2 (not on this file).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/data/languages.ts
@@ -575,17 +577,17 @@ export const VOCABULARY: Record<CEFRLevel, VocabWord[]> = {
 };
 ```
 
-- [ ] **Step 2: Validate counts**
+- [x] **Step 2: Validate counts**
 
 Run: `grep -c "term:" src/data/es/vocabulary.ts` — should be 300 (150 + 150). Manually confirm no duplicate `term` within the *same* level (cross-level duplicates like `correr` appearing once in A1 as a verb and once in A2 as a noun are fine — progress tracking and React keys are scoped per level).
 
 Run: `grep -n "vosotro\|vuestro" src/data/es/vocabulary.ts` — expected: no matches.
 
-- [ ] **Step 3: Type-check**
+- [x] **Step 3: Type-check**
 
 Run: `npm run build` — expected to fail only on pre-existing broken imports elsewhere (Task 2), not on this file.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/data/es/vocabulary.ts
@@ -603,7 +605,7 @@ git commit -m "feat(data): add Spanish A1/A2 vocabulary (300 words, hermitdave-c
 - Consumes: `CEFRLevel`, `GrammarRule` from `@/data/types`.
 - Produces: `GRAMMAR: Record<CEFRLevel, GrammarRule[]>`, A1 = 12 rules, A2 = 12 rules, B1–C2 = `[]`.
 
-- [ ] **Step 1: Create the file**
+- [x] **Step 1: Create the file**
 
 ```typescript
 // src/data/es/grammar.ts
@@ -903,16 +905,16 @@ export const GRAMMAR: Record<CEFRLevel, GrammarRule[]> = {
 };
 ```
 
-- [ ] **Step 2: Validate**
+- [x] **Step 2: Validate**
 
 Run: `grep -c "title:" src/data/es/grammar.ts` — should be 24 (12 + 12).
 Run: `grep -n "vosotro\|vuestro" src/data/es/grammar.ts` — expected: no matches.
 
-- [ ] **Step 3: Type-check**
+- [x] **Step 3: Type-check**
 
 Run: `npm run build` (same caveat as Task 4 — pre-existing broken imports elsewhere are expected until Task 7).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/data/es/grammar.ts
@@ -932,7 +934,7 @@ git commit -m "feat(data): add Spanish A1/A2 grammar rules (24 rules, neutral/La
 
 Content note: for each topic, the Spanish `phrase` here is the same real-world expression already validated as the `translation` field in the existing `data/en/phrases.ts` (already neutral, already `tú`-based, no `vosotros` present) — recast with English as the gloss instead of the target. This keeps both languages' phrasebooks describing the exact same situations.
 
-- [ ] **Step 1: Create the file**
+- [x] **Step 1: Create the file**
 
 ```typescript
 // src/data/es/phrases.ts
@@ -1111,16 +1113,16 @@ export const PHRASES: Record<CEFRLevel, PhraseTopic[]> = {
 };
 ```
 
-- [ ] **Step 2: Validate**
+- [x] **Step 2: Validate**
 
 Run: `grep -c "phrase:" src/data/es/phrases.ts` — should be 47 (10+8+8+6+6+7=45 for A1... count precisely against the file; the exact number isn't load-bearing, just confirm A1 total and A2 total each land in the 40–50 range, matching `data/en/phrases.ts`'s own per-level total).
 Run: `grep -n "vosotro\|vuestro" src/data/es/phrases.ts` — expected: no matches.
 
-- [ ] **Step 3: Type-check**
+- [x] **Step 3: Type-check**
 
 Run: `npm run build` (same caveat — pre-existing broken imports elsewhere expected until Task 7).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/data/es/phrases.ts
@@ -1141,7 +1143,7 @@ git commit -m "feat(data): add Spanish A1/A2 essential phrases (same topics as E
 
 This task is what makes the app compile again after Task 2 broke the old imports.
 
-- [ ] **Step 1: Create `src/data/index.ts`**
+- [x] **Step 1: Create `src/data/index.ts`**
 
 ```typescript
 // src/data/index.ts
@@ -1170,7 +1172,7 @@ export type { LanguageCode, LanguageConfig } from "./languages";
 export { LANGUAGES, DEFAULT_LANGUAGE } from "./languages";
 ```
 
-- [ ] **Step 2: Update `src/pages/Dashboard.tsx`**
+- [x] **Step 2: Update `src/pages/Dashboard.tsx`**
 
 Replace:
 ```typescript
@@ -1204,7 +1206,7 @@ Add `language` to the `useEffect` dependency array in `LevelStatsBar` (currently
 
 No other Dashboard.tsx changes are needed in this task — the language selector UI itself is Task 9.
 
-- [ ] **Step 3: Update `src/components/sections/Vocabulary.tsx`**
+- [x] **Step 3: Update `src/components/sections/Vocabulary.tsx`**
 
 Replace:
 ```typescript
@@ -1233,7 +1235,7 @@ Add an empty-state guard right before the word grid (after the filter tabs, repl
 )}
 ```
 
-- [ ] **Step 4: Update `src/components/sections/Grammar.tsx`**
+- [x] **Step 4: Update `src/components/sections/Grammar.tsx`**
 
 Replace:
 ```typescript
@@ -1271,7 +1273,7 @@ Add an empty-state guard around the rules list (replacing the unconditional `<di
 )}
 ```
 
-- [ ] **Step 5: Update `src/components/sections/Phrases.tsx`**
+- [x] **Step 5: Update `src/components/sections/Phrases.tsx`**
 
 Replace:
 ```typescript
@@ -1296,7 +1298,7 @@ const pct = allPhrases.length > 0 ? Math.round((learnedCount / allPhrases.length
 
 Add an empty-state guard: if `topics.length === 0`, render `<p className="text-sm font-mono text-zinc-400 py-8 text-center">Content for this level is coming soon.</p>` instead of the topic tabs + phrase list block.
 
-- [ ] **Step 6: Update `src/lib/progress.ts` import**
+- [x] **Step 6: Update `src/lib/progress.ts` import**
 
 Replace:
 ```typescript
@@ -1309,7 +1311,7 @@ import type { CEFRLevel } from "@/data";
 
 (The rest of `progress.ts`'s language-awareness is Task 10 — this step only fixes the now-broken import path.)
 
-- [ ] **Step 7: Type-check and manual smoke test**
+- [x] **Step 7: Type-check and manual smoke test**
 
 Run: `npm run build` — expected to succeed (this is the first point since Task 2 where the whole app compiles again).
 
@@ -1317,7 +1319,7 @@ Run: `npm run dev`, open the app, log in, and confirm: Vocabulary/Grammar/Phrase
 
 **Note on sequencing:** `useLanguage()` is introduced in Task 8. If executing tasks strictly in order, Task 7's edits reference a hook that doesn't exist yet. Two options: (a) do Task 8 first, then Task 7 (swap the order in execution, keeping this plan's numbering as documentation-only), or (b) within Task 7, stub `useLanguage` as a temporary local hook returning `{ language: "en" as const }` in each of the four files, then remove the stub in Task 8 once the real context lands. **Recommended: reorder execution to do Task 8 before Task 7** — the dependency runs that direction, not the other way.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/data/index.ts src/pages/Dashboard.tsx src/components/sections/Vocabulary.tsx src/components/sections/Grammar.tsx src/components/sections/Phrases.tsx src/lib/progress.ts
@@ -1338,7 +1340,7 @@ git commit -m "refactor: read vocabulary/grammar/phrases through CONTENT[languag
 
 **Run this task before Task 7** (see the sequencing note in Task 7, Step 7) — Task 7's component edits call `useLanguage()`, which this task defines.
 
-- [ ] **Step 1: Create `src/lib/languageStore.ts`**
+- [x] **Step 1: Create `src/lib/languageStore.ts`**
 
 ```typescript
 // src/lib/languageStore.ts — framework-agnostic active-learning-language store.
@@ -1400,7 +1402,7 @@ export const languageStore = {
 };
 ```
 
-- [ ] **Step 2: Create `src/contexts/LanguageContext.tsx`**
+- [x] **Step 2: Create `src/contexts/LanguageContext.tsx`**
 
 ```tsx
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
@@ -1436,7 +1438,7 @@ export function useLanguage(): LanguageContextValue {
 }
 ```
 
-- [ ] **Step 3: Wire `languageStore.reload()` into `src/contexts/AuthContext.tsx`**
+- [x] **Step 3: Wire `languageStore.reload()` into `src/contexts/AuthContext.tsx`**
 
 Import at the top:
 ```typescript
@@ -1471,7 +1473,7 @@ const logout = useCallback(() => {
 }, []);
 ```
 
-- [ ] **Step 4: Mount `LanguageProvider` in `src/App.tsx`**
+- [x] **Step 4: Mount `LanguageProvider` in `src/App.tsx`**
 
 Import:
 ```typescript
@@ -1492,11 +1494,11 @@ Wrap the Dashboard route element (`src/App.tsx:31-38`):
 />
 ```
 
-- [ ] **Step 5: Type-check**
+- [x] **Step 5: Type-check**
 
 Run: `npm run build` — expected to succeed once combined with Task 7's edits (do Task 7 immediately after this task, per the sequencing note).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/lib/languageStore.ts src/contexts/LanguageContext.tsx src/contexts/AuthContext.tsx src/App.tsx
@@ -1513,7 +1515,7 @@ git commit -m "feat(lang): add language store + context, persisted per-user in l
 **Interfaces:**
 - Consumes: `useLanguage()` (Task 8), `LANGUAGES` from `@/data` (re-exported in Task 7's `data/index.ts`).
 
-- [ ] **Step 1: Add the selector to `SidebarContent`**
+- [x] **Step 1: Add the selector to `SidebarContent`**
 
 In `src/pages/Dashboard.tsx`, add the import (if not already present from Task 7):
 ```typescript
@@ -1561,13 +1563,13 @@ function SidebarContent({ activeLevel, setActiveLevel, activeSection, setActiveS
 }
 ```
 
-- [ ] **Step 2: Type-check and manual test**
+- [x] **Step 2: Type-check and manual test**
 
 Run: `npm run build`.
 
 Run: `npm run dev`, log in, open the sidebar (desktop and the mobile drawer via the hamburger menu) — confirm both "🇬🇧 English" and "🇪🇸 Español" buttons appear above the CEFR level grid, clicking toggles the active state, and the CEFR level selection is untouched by clicking the language buttons (click A2, then switch language, then confirm the level pill in the header still reads A2).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/pages/Dashboard.tsx
@@ -1587,7 +1589,7 @@ git commit -m "feat(ui): add learning-language selector to the dashboard sidebar
 
 The backend (`english-learning-app/routes/progress.js`) already accepts a `language` field on every mutation and a `?language=` query param on GET/DELETE, defaulting to `"en"` for backward compatibility — confirmed by reading the route source. **No backend changes are required.**
 
-- [ ] **Step 1: Update the localStorage key**
+- [x] **Step 1: Update the localStorage key**
 
 Replace:
 ```typescript
@@ -1607,7 +1609,7 @@ function storageKey(): string {
 }
 ```
 
-- [ ] **Step 2: Send `language` on every sync call**
+- [x] **Step 2: Send `language` on every sync call**
 
 Replace the three sync helpers:
 ```typescript
@@ -1630,7 +1632,7 @@ async function syncPhrase(method: "POST" | "DELETE", level: CEFRLevel, phrase: s
 }
 ```
 
-- [ ] **Step 3: Scope `loadFromServer()` to the active language**
+- [x] **Step 3: Scope `loadFromServer()` to the active language**
 
 Replace:
 ```typescript
@@ -1655,7 +1657,7 @@ const json = await progressRequest<{
 }>(`?language=${languageStore.getState()}`);
 ```
 
-- [ ] **Step 4: Scope `reset()` to the active language**
+- [x] **Step 4: Scope `reset()` to the active language**
 
 Replace:
 ```typescript
@@ -1687,7 +1689,7 @@ reset(level?: CEFRLevel) {
 },
 ```
 
-- [ ] **Step 5: Also call `loadFromServer()` on language switch**
+- [x] **Step 5: Also call `loadFromServer()` on language switch**
 
 `Dashboard.tsx` only calls `loadFromServer()` once, on mount (`src/pages/Dashboard.tsx:189-191`). Since switching language should pull that language's authoritative server progress into its (now-different) localStorage bucket, update:
 ```typescript
@@ -1706,7 +1708,7 @@ useEffect(() => {
 
 (`useLanguage()` is already imported in `Dashboard.tsx` per Task 9 — just add `language` to this existing effect's dependency array and reuse the same destructured value.)
 
-- [ ] **Step 6: Manual verification (this is the spec's point 7 checkpoint for progress isolation)**
+- [x] **Step 6: Manual verification (this is the spec's point 7 checkpoint for progress isolation)**
 
 Run: `npm run dev`, log in.
 1. Open DevTools → Application → Local Storage. Confirm keys look like `progress:<userId>:en`.
@@ -1716,7 +1718,7 @@ Run: `npm run dev`, log in.
 5. Switch back to English — confirm the original 2-3 English words are still marked learned, untouched.
 6. Open DevTools → Network, filter on `/api/progress`, mark another word learned in either language, and confirm the request body includes `"language":"en"` or `"language":"es"` matching the active selector.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/lib/progress.ts src/pages/Dashboard.tsx
@@ -1737,7 +1739,7 @@ git commit -m "feat(progress): namespace localStorage and backend sync by active
 
 **Voice selection is the tricky part of this task** — `speechSynthesis.getVoices()` returns `[]` synchronously on the first call in Chromium browsers; the real voice list only arrives later via the `voiceschanged` event. Some engines (older Firefox/Safari) never fire that event at all, so a pure event-wait can hang forever — a timeout fallback is required. Once voices are loaded, prefer regional Latin American/neutral tags over `es-ES`, and accept any other `es-*` voice as a last resort, per the confirmed ranking `es-MX`/`es-419`/`es-US` > `es-ES` > any `es-*`.
 
-- [ ] **Step 1: Create `src/lib/speech.ts`**
+- [x] **Step 1: Create `src/lib/speech.ts`**
 
 ```typescript
 // src/lib/speech.ts — browser SpeechSynthesis wrapper for languages without a
@@ -1842,7 +1844,7 @@ export function isSpeechSynthesisSupported(): boolean {
 }
 ```
 
-- [ ] **Step 2: Rewrite the audio dispatch in `Pronunciation.tsx`**
+- [x] **Step 2: Rewrite the audio dispatch in `Pronunciation.tsx`**
 
 Add imports:
 ```typescript
@@ -1919,7 +1921,7 @@ const stopAll = () => {
 };
 ```
 
-- [ ] **Step 3: Disable the play button with a tooltip when no Spanish voice is available**
+- [x] **Step 3: Disable the play button with a tooltip when no Spanish voice is available**
 
 The app must stay 100% functional without audio — this is a degradation, not an error state. Wrap each play button (and the "Play All" control) so it disables cleanly with an explanatory tooltip when `audioAvailable === false`. Radix's `TooltipTrigger` needs a focusable/hoverable child even when the inner `<button>` is `disabled` (native `disabled` buttons suppress pointer events, which would silently kill the tooltip too), so wrap the button in a `<span>`:
 
@@ -1949,7 +1951,7 @@ The app must stay 100% functional without audio — this is a degradation, not a
 
 Apply the same `disabled={audioAvailable === false}` guard to the "Play All" button. A single `TooltipProvider` at the top of the component (or already present higher in the tree — check `App.tsx`/`Dashboard.tsx` first to avoid nesting redundant providers) is enough to wrap all per-word tooltips.
 
-- [ ] **Step 4: Hide IPA-specific copy when `!config.hasIPA`**
+- [x] **Step 4: Hide IPA-specific copy when `!config.hasIPA`**
 
 Replace the column header (`src/components/sections/Pronunciation.tsx:245`):
 ```tsx
@@ -1964,11 +1966,11 @@ with:
 
 (`{word.phonetic && (...)}` at line 55 already no-ops correctly once `es` vocabulary entries simply omit `phonetic` — no change needed there.)
 
-- [ ] **Step 5: Add the empty-state guard (phase-1 Spanish B1–C2)**
+- [x] **Step 5: Add the empty-state guard (phase-1 Spanish B1–C2)**
 
 Around the word list, guard on `words.length === 0` the same way as Task 7's Vocabulary/Grammar/Phrases changes.
 
-- [ ] **Step 6: Manual test — with and without Spanish voices**
+- [x] **Step 6: Manual test — with and without Spanish voices**
 
 Run: `npm run dev`, switch to Español, open Pronunciation for A1, click ▶ on a word — confirm the browser speaks the Spanish word aloud using the best available `es-*` voice (check `speechSynthesis.getVoices()` in the console to see which voice actually got picked). Confirm "Play All" and "Stop" both work. Switch back to English and confirm MW audio playback is unaffected.
 
@@ -1978,7 +1980,7 @@ Object.defineProperty(window.speechSynthesis, 'getVoices', { value: () => [] });
 ```
 (and if testing the `voiceschanged` path specifically, also dispatch `window.speechSynthesis.dispatchEvent(new Event('voiceschanged'))` after stubbing `getVoices` to return `[]` — confirms the promise still resolves via the timeout fallback rather than hanging). Reload isn't needed since the stub is live; open Pronunciation for Español and confirm: the play buttons render disabled/dimmed, hovering shows the "Audio no disponible en este dispositivo" tooltip, and every other part of the app (word list, definitions, examples, progress tracking) still works normally.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/lib/speech.ts src/components/sections/Pronunciation.tsx
@@ -2015,7 +2017,7 @@ Backend response shape (already confirmed by reading `english-learning-app/route
 ```
 This is a fundamentally different shape from the English `DictionaryEntry` (no `definitions[]`/`synonyms`/`antonyms`/`idioms`). Rendering is branched by `language` — the one deliberate exception to "config not scattered ifs" called out in Global Constraints, because the two backends return structurally incompatible JSON.
 
-- [ ] **Step 1: Add the type in `src/types/index.ts`**
+- [x] **Step 1: Add the type in `src/types/index.ts`**
 
 Add after the existing `DictionaryEntry`/`DictionaryResponse` block:
 ```typescript
@@ -2044,7 +2046,7 @@ export interface SpanishDictionaryResponse {
 }
 ```
 
-- [ ] **Step 2: Update `src/components/sections/DictionarySearch.tsx` to use `config.dictionaryPath`**
+- [x] **Step 2: Update `src/components/sections/DictionarySearch.tsx` to use `config.dictionaryPath`**
 
 Add imports:
 ```typescript
@@ -2106,7 +2108,7 @@ if (!json.success || !json.data) {
 
 Also reset `spanishEntry` to `null` wherever `entry` is currently reset to `null` at the start of `searchWithMeta` (alongside `setEntry(null); setExtra(null);`).
 
-- [ ] **Step 3: Add a Spanish results renderer**
+- [x] **Step 3: Add a Spanish results renderer**
 
 Add a small component above `DictionarySearch` in the same file:
 ```tsx
@@ -2174,7 +2176,7 @@ function SpanishResult({ entry, onPlayAudio }: { entry: SpanishDictionaryEntry; 
 }
 ```
 
-- [ ] **Step 4: Branch the results section**
+- [x] **Step 4: Branch the results section**
 
 Replace the `{entry && !loading && (...)}` block's opening condition and wrap with a language branch. Where the existing JSX currently reads:
 ```tsx
@@ -2201,7 +2203,7 @@ Also update the empty/loading guards above it (`{!loading && !error && !entry &&
 
 Wrap the existing "Word Explorer · Datamuse" block (`src/components/sections/DictionarySearch.tsx:473-505`) — which is inside the English `<article>` already, so it's already gated to `language === "en"` implicitly. No separate change needed there, but double check it doesn't render when `spanishEntry` is set instead.
 
-- [ ] **Step 5: Type-check and manual test**
+- [x] **Step 5: Type-check and manual test**
 
 Run: `npm run build`.
 
@@ -2209,7 +2211,7 @@ Run: `npm run dev`, switch to Español, go to Dictionary, search a common word (
 
 Switch back to English and confirm the dictionary still works exactly as before, including rhymes/similar/adjectives.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/types/index.ts src/components/sections/DictionarySearch.tsx
@@ -2226,7 +2228,7 @@ git commit -m "feat(dictionary): add Spanish lookup via /api/spanish/:word, hide
 **Interfaces:**
 - Consumes: `useLanguage()` (Task 8) for `config.grammarCheckLocale`.
 
-- [ ] **Step 1: Rename the local accent-locale state to avoid clashing with the new global `language`**
+- [x] **Step 1: Rename the local accent-locale state to avoid clashing with the new global `language`**
 
 Add import:
 ```typescript
@@ -2243,7 +2245,7 @@ const [checkLocale, setCheckLocale] = useState(config.grammarCheckLocale);
 ```
 and update every other reference to the old `language`/`setLanguage` local names in this file (`showLang` toggle handlers, the `checkGrammar(text, language)` call, `LANG_OPTIONS.find((l) => l.code === language)`) to `checkLocale`/`setCheckLocale`.
 
-- [ ] **Step 2: Reset the check locale when the learning language changes**
+- [x] **Step 2: Reset the check locale when the learning language changes**
 
 Add:
 ```typescript
@@ -2252,7 +2254,7 @@ useEffect(() => {
 }, [config.grammarCheckLocale]);
 ```
 
-- [ ] **Step 3: Only show the English-accent dropdown for English**
+- [x] **Step 3: Only show the English-accent dropdown for English**
 
 Replace the language-selector block (`src/components/sections/Writing.tsx:265-287`):
 ```tsx
@@ -2290,7 +2292,7 @@ with a branch:
 )}
 ```
 
-- [ ] **Step 4: Spanish-language placeholder and tips**
+- [x] **Step 4: Spanish-language placeholder and tips**
 
 Replace the hardcoded English placeholder/tips with a language-conditional lookup. Add near the top of the file:
 ```typescript
@@ -2317,17 +2319,17 @@ const TIPS: Record<string, string[]> = {
 
 Replace `placeholder={...}` on the `<textarea>` (`src/components/sections/Writing.tsx:330`) with `placeholder={PLACEHOLDERS[language]}`, and replace the hardcoded tips array literal (`src/components/sections/Writing.tsx:367-372`) with `{TIPS[language].map((tip, i) => (...))}`.
 
-- [ ] **Step 5: Update `handleCheck` to send `checkLocale`**
+- [x] **Step 5: Update `handleCheck` to send `checkLocale`**
 
 `handleCheck`'s dependency array and body already reference `language` (now `checkLocale`) — confirm `checkGrammar(text, checkLocale)` and `useCallback([text, checkLocale], ...)` after the rename in Step 1.
 
-- [ ] **Step 6: Type-check and manual test**
+- [x] **Step 6: Type-check and manual test**
 
 Run: `npm run build`.
 
 Run: `npm run dev`, switch to Español, go to Writing, confirm the placeholder/tips are in Spanish, the accent dropdown is replaced by a static "Español" badge, write a sentence with a deliberate error (e.g. "Yo tiene un gato"), click "Check my writing", and confirm LanguageTool returns Spanish-language grammar matches (requires the backend's `/api/grammar/check` to accept `language: "es"` — it already does, per `api.ts`'s existing `checkGrammar(text, language = "en-US")` signature which just forwards whatever locale string it's given to the backend).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/components/sections/Writing.tsx
@@ -2340,15 +2342,15 @@ git commit -m "feat(writing): use Spanish grammar-check locale and copy when lea
 
 No code changes — this is the explicit verification checklist from the original request's point 7. Run `npm run dev`, log in, and walk through:
 
-- [ ] Switching the language selector shows Spanish vocabulary/grammar/phrases content immediately (no stale English content lingering).
-- [ ] Switching language does **not** change the active CEFR level (confirm by setting level to B1 first, then switching language, then confirming level pill still shows B1 — note Spanish B1 content will correctly show the "coming soon" empty state from Task 7/11, which is expected for phase 1).
-- [ ] Marking vocabulary/grammar/phrases as learned in Spanish does not affect English progress and vice versa — verified via `localStorage` keys (`progress:<userId>:en` vs `progress:<userId>:es`) and via the Network tab (`language` field on each `/api/progress/*` request body/query matches the active selector).
-- [ ] Spanish audio (Pronunciation section) plays via the browser's built-in voice, not a fetched MP3.
-- [ ] Spanish dictionary search returns gender + translations + bilingual examples, with no "Word Explorer · Datamuse" section.
-- [ ] Writing's grammar check returns Spanish-language matches when Spanish is active, and the accent dropdown is replaced by a static "Español" indicator.
-- [ ] No `vosotros`/`vuestro` forms appear anywhere in Spanish content or UI copy (`grep -rn "vosotro\|vuestro" src/data/es` should be empty — already checked per-task, re-confirm here as a final gate).
-- [ ] Logging out and back in (or as a different user) does not leak one user's language preference or progress into another's session.
-- [ ] `npm run build` succeeds with zero TypeScript errors.
+- [x] Switching the language selector shows Spanish vocabulary/grammar/phrases content immediately (no stale English content lingering).
+- [x] Switching language does **not** change the active CEFR level (confirm by setting level to B1 first, then switching language, then confirming level pill still shows B1 — note Spanish B1 content will correctly show the "coming soon" empty state from Task 7/11, which is expected for phase 1).
+- [x] Marking vocabulary/grammar/phrases as learned in Spanish does not affect English progress and vice versa — verified via `localStorage` keys (`progress:<userId>:en` vs `progress:<userId>:es`) and via the Network tab (`language` field on each `/api/progress/*` request body/query matches the active selector).
+- [x] Spanish audio (Pronunciation section) plays via the browser's built-in voice, not a fetched MP3.
+- [x] Spanish dictionary search returns gender + translations + bilingual examples, with no "Word Explorer · Datamuse" section.
+- [x] Writing's grammar check returns Spanish-language matches when Spanish is active, and the accent dropdown is replaced by a static "Español" indicator.
+- [x] No `vosotros`/`vuestro` forms appear anywhere in Spanish content or UI copy (`grep -rn "vosotro\|vuestro" src/data/es` should be empty — already checked per-task, re-confirm here as a final gate).
+- [x] Logging out and back in (or as a different user) does not leak one user's language preference or progress into another's session.
+- [x] `npm run build` succeeds with zero TypeScript errors.
 
 Only report the feature complete, and only push, after every box above is checked and after showing the user this checklist's results plus the dataset/license summary already delivered earlier in this conversation (per the explicit "no pushees sin mostrarme el resumen" instruction).
 
@@ -2376,7 +2378,7 @@ Added per follow-up user request, appended without altering Tasks 1-14 or their 
 
 **Goal:** every place that currently states or implies "English learning" as the app's sole purpose should reflect that it teaches **both** English and Spanish. Verified via research pass — no `document.title =`/Helmet usage anywhere in `src/`, so the static `<title>` in `index.html` is the only page-title surface.
 
-- [ ] **Step 1: `index.html`**
+- [x] **Step 1: `index.html`**
 
 Replace:
 ```html
@@ -2389,7 +2391,7 @@ with:
 <meta name="description" content="Learn English and Spanish for free with vocabulary cards, grammar guides, pronunciation drills, a live dictionary, writing checker, and essential phrases. All CEFR levels from A1 to C2." />
 ```
 
-- [ ] **Step 2: `README.md`** (lines 1-3)
+- [x] **Step 2: `README.md`** (lines 1-3)
 
 Replace:
 ```markdown
@@ -2403,7 +2405,7 @@ Personal English & Spanish learning dashboard structured around CEFR levels (A1 
 Aprende inglés y español — todos los niveles (A1-C2).
 ```
 
-- [ ] **Step 3: `src/pages/LandingPage.tsx`**
+- [x] **Step 3: `src/pages/LandingPage.tsx`**
 
 Replace each of the following (line numbers per the pre-Task-15 file; re-locate by content if a prior task in this plan already shifted them):
 - Line 161 badge text: `Free English Tools · A1 to C2` → `Free English & Spanish Tools · A1 to C2`
@@ -2413,7 +2415,7 @@ Replace each of the following (line numbers per the pre-Task-15 file; re-locate 
 - Lines 345-347 footer: `A free English learning platform structured by CEFR levels. Built for self-learners who want real tools, not gamification.` → `A free English and Spanish learning platform structured by CEFR levels. Built for self-learners who want real tools, not gamification.`
 - Line 376 copyright: `© 2026 English Learning. All rights reserved.` → `© 2026 English & Spanish Learning. All rights reserved.`
 
-- [ ] **Step 4: `src/pages/Dashboard.tsx`**
+- [x] **Step 4: `src/pages/Dashboard.tsx`**
 
 Replace the file header comment (lines 2-4):
 ```typescript
@@ -2428,11 +2430,11 @@ with:
 
 Replace the sidebar brand link/text (lines 217-221, `English` + `Personal Learning Dashboard`) with `English + Español` (or equivalent) + `Personal Learning Dashboard` — same layout judgment call as Step 3's wordmark; keep both brand mentions consistent with whichever exact wording is chosen.
 
-- [ ] **Step 5: Manual check**
+- [x] **Step 5: Manual check**
 
 Run `npm run dev` (and `npm run build` for the `index.html`/type-safe files). Visually confirm: browser tab title, landing page hero/badge/footer/copyright, and the dashboard sidebar brand all read as bilingual, with no leftover "English learning" phrasing implying Spanish is absent. Confirm nothing overflows/wraps awkwardly at mobile width (375px) with the longer brand strings.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add index.html README.md src/pages/LandingPage.tsx src/pages/Dashboard.tsx
@@ -2454,7 +2456,7 @@ git commit -m "docs(branding): update titles, meta, landing, and dashboard copy 
 - Produces (`preferencesSync.ts`): `syncPreferences(patch: { learningLanguage?: LanguageCode; cefrLevel?: CEFRLevel }): void` — fire-and-forget PATCH, mirrors the existing swallow-errors pattern in `progress.ts`'s `syncVocab`/`syncGrammar`/`syncPhrase`.
 - Consumes: `authStore` (existing), `languageStore`/`useLanguage` (Task 8), `fetchMe`/`jsonRequest` pattern (existing `api.ts`).
 
-- [ ] **Step 1: Add `preferences` to the `User` type**
+- [x] **Step 1: Add `preferences` to the `User` type**
 
 In `src/types/index.ts`, add near the existing `User` interface:
 ```typescript
@@ -2473,7 +2475,7 @@ export interface User {
 }
 ```
 
-- [ ] **Step 2: Add `updatePreferences` to `api.ts`**
+- [x] **Step 2: Add `updatePreferences` to `api.ts`**
 
 Below `fetchMe` (`src/lib/api.ts:253-254`):
 ```typescript
@@ -2489,7 +2491,7 @@ export const updatePreferences = (
 ```
 (Add the `LanguageCode`/`CEFRLevel`/`UserPreferences` imports at the top of `api.ts` alongside its existing `User`/`AuthResponse` imports from `@/types`.)
 
-- [ ] **Step 3: Create `src/lib/cefrLevelStore.ts`**
+- [x] **Step 3: Create `src/lib/cefrLevelStore.ts`**
 
 Verbatim copy of `languageStore.ts`'s pattern (Task 8, Step 1), swapped for level:
 ```typescript
@@ -2551,7 +2553,7 @@ export const cefrLevelStore = {
 };
 ```
 
-- [ ] **Step 4: Create `src/lib/preferencesSync.ts`**
+- [x] **Step 4: Create `src/lib/preferencesSync.ts`**
 
 ```typescript
 // src/lib/preferencesSync.ts — best-effort backend sync for language/level
@@ -2571,7 +2573,7 @@ export function syncPreferences(patch: { learningLanguage?: LanguageCode; cefrLe
 }
 ```
 
-- [ ] **Step 5: Hydrate both stores from `preferences` on session validation, login, and register**
+- [x] **Step 5: Hydrate both stores from `preferences` on session validation, login, and register**
 
 In `src/contexts/AuthContext.tsx`, import the new pieces:
 ```typescript
@@ -2636,7 +2638,7 @@ const logout = useCallback(() => {
 }, []);
 ```
 
-- [ ] **Step 6: Sync on language change**
+- [x] **Step 6: Sync on language change**
 
 In `src/contexts/LanguageContext.tsx` (Task 8, Step 2), wrap the exposed `setLanguage` so switching language also fires the backend sync, instead of exposing `languageStore.setLanguage` directly:
 ```typescript
@@ -2660,7 +2662,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 }
 ```
 
-- [ ] **Step 7: Sync on CEFR level change, and read the initial level from `cefrLevelStore`**
+- [x] **Step 7: Sync on CEFR level change, and read the initial level from `cefrLevelStore`**
 
 In `src/pages/Dashboard.tsx`, replace:
 ```typescript
@@ -2683,13 +2685,13 @@ import { syncPreferences } from "@/lib/preferencesSync";
 ```
 No other call sites change — `setActiveLevel` is already threaded through `SidebarContent`'s props (Task 9) and every other reference in `Dashboard.tsx`, so this stays a drop-in replacement.
 
-- [ ] **Step 8: Type-check and manual test**
+- [x] **Step 8: Type-check and manual test**
 
 Run: `npm run build`.
 
 Run: `npm run dev`, log in as a test user, switch to Español and set level to B1. Open DevTools → Network, filter on `/api/auth/preferences`, confirm a PATCH fired with `{"learningLanguage":"es"}` and another with `{"cefrLevel":"B1"}` (or combined, depending on click order), each returning `200` with the merged `preferences` object. Log out, log back in (or open the app in a different browser/incognito with the same credentials) and confirm the language selector shows Español and the level pill shows B1 immediately on load — i.e., cross-device/cross-session hydration works, not just localStorage. Then go fully offline (DevTools → Network → offline), change language/level again, and confirm the UI still updates instantly (localStorage cache) even though the PATCH silently fails.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/types/index.ts src/lib/api.ts src/lib/cefrLevelStore.ts src/lib/preferencesSync.ts src/contexts/AuthContext.tsx src/contexts/LanguageContext.tsx src/pages/Dashboard.tsx
