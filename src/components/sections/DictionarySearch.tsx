@@ -284,6 +284,16 @@ export default function DictionarySearch() {
   const [extraLoading, setExtraLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Clear stale search results when the language changes so the pane falls
+  // back to the empty state instead of showing a leftover result rendered
+  // under the wrong language branch (or nothing at all). History persists.
+  useEffect(() => {
+    setEntry(null);
+    setSpanishEntry(null);
+    setExtra(null);
+    setError(null);
+  }, [language]);
+
   const searchWithMeta = useCallback(async (word: string) => {
     const trimmed = word.trim();
     if (!trimmed) return;
