@@ -255,7 +255,7 @@ export default function Vocabulary({ level }: VocabularyProps) {
   });
 
   const learnedCount = words.filter((w) => learned.includes(w.term)).length;
-  const pct = Math.round((learnedCount / words.length) * 100);
+  const pct = words.length > 0 ? Math.round((learnedCount / words.length) * 100) : 0;
 
   return (
     <div className="space-y-5">
