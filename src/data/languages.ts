@@ -16,7 +16,7 @@ export const LANGUAGES: Record<LanguageCode, LanguageConfig> = {
   en: {
     code: "en",
     label: "English",
-    flag: "🇬🇧",
+    flag: "🇺🇸",
     speechLocale: "en-US",
     grammarCheckLocale: "en-US",
     dictionaryPath: (word) => `/dictionary/${encodeURIComponent(word.trim().toLowerCase())}`,
@@ -27,7 +27,7 @@ export const LANGUAGES: Record<LanguageCode, LanguageConfig> = {
   es: {
     code: "es",
     label: "Español",
-    flag: "🇪🇸",
+    flag: "🇨🇴",
     speechLocale: "es-MX",
     grammarCheckLocale: "es",
     dictionaryPath: (word) => `/spanish/${encodeURIComponent(word.trim().toLowerCase())}`,
