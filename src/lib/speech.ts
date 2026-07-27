@@ -3,6 +3,12 @@
 
 const SPANISH_VOICE_PRIORITY = ["es-mx", "es-419", "es-us"];
 
+// Known higher-quality macOS/iOS Spanish voice names (compared accent-insensitively).
+const PREMIUM_VOICE_NAMES = ["monica", "paulina", "angelica", "juan"];
+const QUALITY_KEYWORD_RE = /enhanced|premium|neural/i;
+
+let hasLoggedVoices = false;
+
 let cachedVoices: SpeechSynthesisVoice[] | null = null;
 let voicesPromise: Promise<SpeechSynthesisVoice[]> | null = null;
 
@@ -53,40 +59,104 @@ function loadVoices(): Promise<SpeechSynthesisVoice[]> {
   return voicesPromise;
 }
 
-function pickSpanishVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+function stripAccents(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+// Higher score = better voice. Recognizes known premium macOS/iOS Spanish
+// voices, "Enhanced"/"Premium"/"Neural" naming, and non-local (usually
+// higher-quality, e.g. Chrome network) voices. Scores stack, so a voice
+// matching multiple signals ranks above one matching only one.
+function voiceQualityScore(voice: SpeechSynthesisVoice): number {
+  const name = stripAccents(voice.name.toLowerCase());
+  let score = 0;
+  if (PREMIUM_VOICE_NAMES.some((n) => name.includes(n))) score += 2;
+  if (QUALITY_KEYWORD_RE.test(voice.name)) score += 2;
+  if (voice.localService === false) score += 1;
+  return score;
+}
+
+// Locale-match score, used as a tie-break within a quality tier and as the
+// sole ranking key when no candidate has any quality signal (i.e. the
+// original locale-only fallback: exact match > es-MX/es-419/es-US > es-ES >
+// any other es-*).
+function localeScore(voice: SpeechSynthesisVoice, lang: string): number {
+  const l = voice.lang.toLowerCase();
+  if (l === lang.toLowerCase()) return 4;
+  const idx = SPANISH_VOICE_PRIORITY.indexOf(l);
+  if (idx !== -1) return 3 - idx;
+  if (l === "es-es") return 0.5;
+  return 0;
+}
+
+function pickSpanishVoice(voices: SpeechSynthesisVoice[], lang: string): SpeechSynthesisVoice | null {
   const esVoices = voices.filter((v) => v.lang.toLowerCase().startsWith("es"));
   if (esVoices.length === 0) return null;
 
-  for (const preferred of SPANISH_VOICE_PRIORITY) {
-    const match = esVoices.find((v) => v.lang.toLowerCase() === preferred);
-    if (match) return match;
-  }
-  const esES = esVoices.find((v) => v.lang.toLowerCase() === "es-es");
-  if (esES) return esES;
+  let best = esVoices[0];
+  let bestQuality = voiceQualityScore(best);
+  let bestLocale = localeScore(best, lang);
 
-  return esVoices[0]; // any other es-* (e.g. es-AR, es-CO) beats no voice at all
+  for (const voice of esVoices.slice(1)) {
+    const quality = voiceQualityScore(voice);
+    const locale = localeScore(voice, lang);
+    if (quality > bestQuality || (quality === bestQuality && locale > bestLocale)) {
+      best = voice;
+      bestQuality = quality;
+      bestLocale = locale;
+    }
+  }
+
+  return best;
 }
 
-export async function getSpanishVoice(): Promise<SpeechSynthesisVoice | null> {
+// Temporary diagnostic: log every es-* voice this browser/OS reports, so we
+// can see what quality of voice is actually available. Fires once per page
+// load.
+function logSpanishVoices(voices: SpeechSynthesisVoice[]): void {
+  if (hasLoggedVoices) return;
+  hasLoggedVoices = true;
+  const esVoices = voices.filter((v) => v.lang.toLowerCase().startsWith("es"));
+  if (esVoices.length === 0) {
+    console.log("[speech] No es-* voices detected.");
+    return;
+  }
+  console.table(
+    esVoices.map((v) => ({ name: v.name, lang: v.lang, localService: v.localService }))
+  );
+}
+
+export async function getSpanishVoice(lang = "es-MX"): Promise<SpeechSynthesisVoice | null> {
   const voices = await loadVoices();
-  return pickSpanishVoice(voices);
+  logSpanishVoices(voices);
+  return pickSpanishVoice(voices, lang);
 }
 
 export async function hasSpanishVoice(): Promise<boolean> {
   return (await getSpanishVoice()) !== null;
 }
 
-export async function speak(text: string, lang: string): Promise<void> {
+export interface SpeakOptions {
+  rate?: number;
+  pitch?: number;
+}
+
+// `text` is spoken as-is, including punctuation — punctuation drives natural
+// pauses in most engines, so callers (including future phrase/sentence
+// playback) must not strip it before calling speak().
+export async function speak(text: string, lang: string, options: SpeakOptions = {}): Promise<void> {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
     return;
   }
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = lang;
+  utterance.rate = options.rate ?? 0.9;
+  utterance.pitch = options.pitch ?? 1.0;
 
   const voices = await loadVoices();
-  const exact = voices.find((v) => v.lang.toLowerCase() === lang.toLowerCase());
-  const voice = exact ?? pickSpanishVoice(voices);
+  logSpanishVoices(voices);
+  const voice = pickSpanishVoice(voices, lang);
   if (voice) utterance.voice = voice;
 
   return new Promise((resolve) => {

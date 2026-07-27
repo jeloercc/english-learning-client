@@ -1,6 +1,11 @@
 # ─── Dependencies ─────────────────────────────────────────────────────────────
 node_modules
 
+# This repo uses pnpm (pnpm-lock.yaml) — don't let a stray npm/yarn lockfile
+# back in, since two lockfiles can cause installs to diverge and break builds.
+package-lock.json
+yarn.lock
+
 # ─── Build output ─────────────────────────────────────────────────────────────
 dist
 dist-ssr

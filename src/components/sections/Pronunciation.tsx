@@ -10,10 +10,13 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 import { cn } from "@/lib/utils";
 
 // ─── Pace options ─────────────────────────────────────────────────────────────
-const PACE_OPTIONS: { label: string; delay: number }[] = [
-  { label: "Slow",   delay: 3500 },
-  { label: "Normal", delay: 1800 },
-  { label: "Fast",   delay: 800  },
+// `rate` also drives SpeechSynthesisUtterance.rate for Spanish (browser TTS) —
+// kept close to 1 and biased slow, since clarity matters more than speed in a
+// learning app.
+const PACE_OPTIONS: { label: string; delay: number; rate: number }[] = [
+  { label: "Slow",   delay: 3500, rate: 0.75 },
+  { label: "Normal", delay: 1800, rate: 0.9  },
+  { label: "Fast",   delay: 800,  rate: 1.1  },
 ];
 
 const NO_AUDIO_TOOLTIP = "Audio no disponible en este dispositivo";
@@ -168,7 +171,7 @@ export default function Pronunciation({ level }: PronunciationProps) {
     if (!config.hasAudioApi) {
       // Spanish (phase 1): browser SpeechSynthesis, no fetch, no caching needed.
       setAudioStates((s) => ({ ...s, [term]: "ready" }));
-      await speak(term, config.speechLocale);
+      await speak(term, config.speechLocale, { rate: PACE_OPTIONS[paceIndex].rate });
       setPlayingIndex(null);
       return;
     }
@@ -191,7 +194,7 @@ export default function Pronunciation({ level }: PronunciationProps) {
       audio.onerror = () => { setPlayingIndex(null); resolve(); };
       audio.play().catch(() => { setPlayingIndex(null); resolve(); });
     });
-  }, [config, fetchAudio, audioAvailable]);
+  }, [config, fetchAudio, audioAvailable, paceIndex]);
 
   // Play all sequentially
   const playAll = useCallback(async () => {
